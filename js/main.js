@@ -62,14 +62,37 @@ style.textContent = '.revealed { opacity: 1 !important; transform: translateY(0)
 document.head.appendChild(style);
 
 /* ── Cart counter (placeholder) ── */
-let cartCount = 0;
 const cartBtn = document.querySelector('.nav-cart');
 
-document.querySelectorAll('.card-btn, .btn-primary').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    if (btn.textContent.includes('Shop') || btn.textContent.includes('Explore')) {
-      // placeholder — hook up to real cart logic here
-    }
+function readCartCount() {
+  const raw = window.localStorage.getItem('qori_cart_count');
+  const n = Number.parseInt(raw ?? '0', 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function writeCartCount(n) {
+  window.localStorage.setItem('qori_cart_count', String(n));
+}
+
+function renderCartCount(n) {
+  if (!cartBtn) return;
+  cartBtn.textContent = `Cart (${n})`;
+}
+
+function bumpCartCount(delta = 1) {
+  const next = Math.max(0, readCartCount() + delta);
+  writeCartCount(next);
+  renderCartCount(next);
+}
+
+// Init
+renderCartCount(readCartCount());
+
+// Any element with [data-add-to-cart] will increment the cart count.
+document.querySelectorAll('[data-add-to-cart]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    bumpCartCount(1);
   });
 });
 
