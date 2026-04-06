@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qori Silver — Shop (MVP)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="logo">QORI <span>SILVER</span></a>
+    <ul class="nav-links">
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="index.html#heritage">Heritage</a></li>
+      <li><a href="index.html#craftsmanship">Craftsmanship</a></li>
+      <li><a href="index.html#about">About</a></li>
+    </ul>
+    <a href="#" class="nav-cart" data-cart-open>Cart (0)</a>
+    <button class="nav-toggle" aria-label="Open menu">&#9776;</button>
+  </nav>
+
+  <section class="shop-hero">
+    <div class="sec-label" style="color:var(--teal-lt)">MVP Shop</div>
+    <h1 style="font-size:clamp(2.2rem,4.5vw,3.4rem)">Test Products</h1>
+    <p class="hero-desc" style="max-width:720px">
+      Placeholder items so you can preview the cart and checkout flow. When you have real products, we’ll swap these for real images, prices, and checkout.
+    </p>
+  </section>
+
+  <section class="shop">
+    <div class="shop-grid">
+      <article class="shop-card">
+        <div class="shop-img">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <rect width="240" height="240" fill="#221D16"/>
+            <circle cx="120" cy="120" r="78" stroke="#C9A84C" stroke-width="2" opacity=".6"/>
+            <circle cx="120" cy="120" r="54" stroke="#1D8A7A" stroke-width="2" opacity=".4"/>
+            <circle cx="120" cy="135" r="10" fill="#B03A2E" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="shop-meta">
+          <div class="piece-cat" style="color:var(--teal-lt)">Pendants</div>
+          <div class="piece-name">MVP Pendant A</div>
+          <div class="piece-price">$120</div>
+          <div class="piece-mat">Sterling silver · Stone TBD</div>
+          <button class="piece-add" type="button"
+            data-add-to-cart
+            data-product-id="mvp-pendant-a"
+            data-product-name="MVP Pendant A"
+            data-product-price="120"
+          >Add to cart</button>
+        </div>
+      </article>
+
+      <article class="shop-card">
+        <div class="shop-img">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <rect width="240" height="240" fill="#2E2720"/>
+            <ellipse cx="120" cy="130" rx="86" ry="18" stroke="#C9A84C" stroke-width="2" opacity=".8"/>
+            <ellipse cx="120" cy="118" rx="86" ry="18" stroke="#C9A84C" stroke-width="2" opacity=".8"/>
+            <circle cx="120" cy="110" r="8" fill="#4EC9B0" opacity=".9"/>
+          </svg>
+        </div>
+        <div class="shop-meta">
+          <div class="piece-cat" style="color:var(--crimson-lt)">Rings</div>
+          <div class="piece-name">MVP Ring B</div>
+          <div class="piece-price">$80</div>
+          <div class="piece-mat">Sterling silver · Stone TBD</div>
+          <button class="piece-add" type="button"
+            data-add-to-cart
+            data-product-id="mvp-ring-b"
+            data-product-name="MVP Ring B"
+            data-product-price="80"
+          >Add to cart</button>
+        </div>
+      </article>
+
+      <article class="shop-card">
+        <div class="shop-img">
+          <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" fill="none">
+            <rect width="240" height="240" fill="#1B1610"/>
+            <path d="M90 50 L90 68" stroke="#C8D0DC" stroke-width="2"/>
+            <circle cx="90" cy="78" r="6" fill="#C9A84C"/>
+            <path d="M 70 95 Q 60 160 90 178 Q 120 160 110 95 Z" stroke="#1A5AA0" stroke-width="2" opacity=".9"/>
+            <path d="M150 50 L150 68" stroke="#C8D0DC" stroke-width="2"/>
+            <circle cx="150" cy="78" r="6" fill="#C9A84C"/>
+            <path d="M 130 95 Q 120 160 150 178 Q 180 160 170 95 Z" stroke="#1A5AA0" stroke-width="2" opacity=".9"/>
+          </svg>
+        </div>
+        <div class="shop-meta">
+          <div class="piece-cat" style="color:var(--cobalt-lt)">Earrings</div>
+          <div class="piece-name">MVP Earrings C</div>
+          <div class="piece-price">$70</div>
+          <div class="piece-mat">Sterling silver · Stone TBD</div>
+          <button class="piece-add" type="button"
+            data-add-to-cart
+            data-product-id="mvp-earrings-c"
+            data-product-name="MVP Earrings C"
+            data-product-price="70"
+          >Add to cart</button>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── CART DRAWER (MVP) ── -->
+  <div class="cart-overlay" data-cart-overlay></div>
+  <aside class="cart-drawer" data-cart-drawer aria-label="Cart">
+    <div class="cart-head">
+      <div class="cart-title">Your Cart <span class="cart-pill" data-cart-count>0</span></div>
+      <button class="cart-x" type="button" data-cart-close aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-body">
+      <div class="cart-items" data-cart-items></div>
+    </div>
+    <div class="cart-foot">
+      <div class="cart-row">
+        <span class="muted">Subtotal</span>
+        <strong data-cart-subtotal>$0.00</strong>
+      </div>
+      <div class="cart-actions">
+        <button class="btn-ghost cart-clear" type="button" data-cart-clear>Clear</button>
+        <button class="btn-primary cart-checkout" type="button" data-cart-checkout>Checkout (demo)</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
+

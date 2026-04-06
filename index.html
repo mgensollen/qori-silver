@@ -15,12 +15,13 @@
   <nav class="navbar">
     <a href="#" class="logo">QORI <span>SILVER</span></a>
     <ul class="nav-links">
+      <li><a href="shop.html">Shop</a></li>
       <li><a href="#collections">Collections</a></li>
       <li><a href="#heritage">Heritage</a></li>
       <li><a href="#craftsmanship">Craftsmanship</a></li>
       <li><a href="#about">About</a></li>
     </ul>
-    <a href="#" class="nav-cart">Cart (0)</a>
+    <a href="#" class="nav-cart" data-cart-open>Cart (0)</a>
     <button class="nav-toggle" aria-label="Open menu">&#9776;</button>
   </nav>
 
@@ -160,7 +161,15 @@
           <div class="card-tag" style="color:var(--teal-lt)">Featured Collection</div>
           <div class="card-name">Inti — Solar</div>
           <div class="card-sub">24 pieces · From $89</div>
-          <a href="#" class="card-btn" data-add-to-cart style="color:var(--teal-lt);border-color:var(--teal-lt)">Shop Now</a>
+          <a
+            href="#"
+            class="card-btn"
+            data-add-to-cart
+            data-product-id="inti-collection"
+            data-product-name="Inti — Solar (Collection)"
+            data-product-price="89"
+            style="color:var(--teal-lt);border-color:var(--teal-lt)"
+          >Shop Now</a>
         </div>
       </div>
 
@@ -200,7 +209,15 @@
           <div class="card-tag" style="color:var(--crimson-lt)">New Arrivals</div>
           <div class="card-name">Sapa — Rings</div>
           <div class="card-sub">18 pieces · From $65</div>
-          <a href="#" class="card-btn" data-add-to-cart style="color:var(--crimson-lt);border-color:var(--crimson-lt)">Shop Now</a>
+          <a
+            href="#"
+            class="card-btn"
+            data-add-to-cart
+            data-product-id="sapa-rings"
+            data-product-name="Sapa — Rings (Collection)"
+            data-product-price="65"
+            style="color:var(--crimson-lt);border-color:var(--crimson-lt)"
+          >Shop Now</a>
         </div>
       </div>
 
@@ -245,7 +262,15 @@
           <div class="card-tag" style="color:var(--cobalt-lt)">Bestseller</div>
           <div class="card-name">Qoya — Earrings</div>
           <div class="card-sub">32 pieces · From $45</div>
-          <a href="#" class="card-btn" data-add-to-cart style="color:var(--cobalt-lt);border-color:var(--cobalt-lt)">Shop Now</a>
+          <a
+            href="#"
+            class="card-btn"
+            data-add-to-cart
+            data-product-id="qoya-earrings"
+            data-product-name="Qoya — Earrings (Collection)"
+            data-product-price="45"
+            style="color:var(--cobalt-lt);border-color:var(--cobalt-lt)"
+          >Shop Now</a>
         </div>
       </div>
 
@@ -356,11 +381,40 @@
         <div class="piece-name">Chakana Sun Medallion</div>
         <div class="piece-price">$129</div>
         <div class="piece-mat">Sterling silver · Chrysocolla</div>
-        <button class="piece-add" type="button" data-add-to-cart>Add to cart</button>
+      <button
+        class="piece-add"
+        type="button"
+        data-add-to-cart
+        data-product-id="chakana-sun-medallion"
+        data-product-name="Chakana Sun Medallion"
+        data-product-price="129"
+      >Add to cart</button>
       </div>
 
     </div>
   </section>
+
+  <!-- ── CART DRAWER (MVP) ── -->
+  <div class="cart-overlay" data-cart-overlay></div>
+  <aside class="cart-drawer" data-cart-drawer aria-label="Cart">
+    <div class="cart-head">
+      <div class="cart-title">Your Cart <span class="cart-pill" data-cart-count>0</span></div>
+      <button class="cart-x" type="button" data-cart-close aria-label="Close cart">×</button>
+    </div>
+    <div class="cart-body">
+      <div class="cart-items" data-cart-items></div>
+    </div>
+    <div class="cart-foot">
+      <div class="cart-row">
+        <span class="muted">Subtotal</span>
+        <strong data-cart-subtotal>$0.00</strong>
+      </div>
+      <div class="cart-actions">
+        <button class="btn-ghost cart-clear" type="button" data-cart-clear>Clear</button>
+        <button class="btn-primary cart-checkout" type="button" data-cart-checkout>Checkout (demo)</button>
+      </div>
+    </div>
+  </aside>
 
   <!-- ── STORY ── -->
   <section class="story" id="about">
