@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Qori Silver — Order confirmed</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="logo">QORI <span>SILVER</span></a>
+    <ul class="nav-links">
+      <li><a href="shop.html">Shop</a></li>
+    </ul>
+  </nav>
+
+  <section class="shop-hero" style="min-height:60vh">
+    <div class="sec-label" style="color:var(--jade-lt)">Payment successful</div>
+    <h1 style="font-size:clamp(2.2rem,4.5vw,3.4rem)">Thank you for your order</h1>
+    <p class="hero-desc" style="max-width:720px">
+      Your payment was confirmed. We’ll follow up with order details.
+    </p>
+    <p class="hero-desc" style="max-width:720px" id="orderStatus"></p>
+    <div class="cta-row" style="margin-top:1.5rem">
+      <a class="btn-primary" href="shop.html">Continue shopping →</a>
+      <a class="btn-ghost" href="index.html">Back to home →</a>
+    </div>
+  </section>
+
+  <script>
+    try { localStorage.removeItem('qori_cart'); } catch {}
+
+    (async () => {
+      const el = document.getElementById('orderStatus');
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.get('session_id');
+      if (!sessionId) return;
+
+      try {
+        const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+        const res = await fetch(`${apiBase}/api/save-order-from-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+
+        if (!res.ok) throw new Error(await res.text());
+        if (el) el.textContent = 'Order saved.';
+      } catch (e) {
+        console.error(e);
+        if (el) el.textContent = 'Order save pending. If you don’t receive a confirmation, please contact support.';
+      }
+    })();
+  </script>
+</body>
+</html>
+

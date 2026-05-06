@@ -221,6 +221,31 @@ function showFakeCheckout(total) {
   });
 }
 
+async function startStripeCheckout(cart) {
+  const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+  const items = (cart?.items ?? []).map(it => ({
+    id: it.id,
+    name: it.name,
+    price: it.price,
+    qty: it.qty,
+  }));
+
+  const res = await fetch(`${apiBase}/api/create-checkout-session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => '');
+    throw new Error(msg || `Checkout failed (${res.status})`);
+  }
+
+  const data = await res.json();
+  if (!data?.url) throw new Error('Checkout failed (missing redirect URL).');
+  window.location.assign(data.url);
+}
+
 // Init + global wiring
 let cart = readCart();
 renderCart(cart);
@@ -289,7 +314,10 @@ document.querySelector('[data-cart-clear]')?.addEventListener('click', (e) => {
 document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) => {
   e.preventDefault();
   if (cart.items.length === 0) return;
-  showFakeCheckout(cartSubtotal(cart));
+  startStripeCheckout(cart).catch((err) => {
+    console.error(err);
+    alert('Sorry — checkout is not available yet. Please try again in a moment.');
+  });
 });
 
 /* ── Console welcome ── */
