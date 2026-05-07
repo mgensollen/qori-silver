@@ -266,18 +266,18 @@ document.querySelectorAll('[data-cart-close]').forEach(el => {
 
 cartOverlay?.addEventListener('click', closeCart);
 
-document.querySelectorAll('[data-add-to-cart]').forEach(el => {
-  el.addEventListener('click', (e) => {
-    e.preventDefault();
-    const id = el.getAttribute('data-product-id') ?? 'test-item';
-    const name = el.getAttribute('data-product-name') ?? 'Test Item';
-    const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-add-to-cart]');
+  if (!btn) return;
+  e.preventDefault();
+  const id = btn.getAttribute('data-product-id') ?? 'test-item';
+  const name = btn.getAttribute('data-product-name') ?? 'Test Item';
+  const price = Number.parseFloat(btn.getAttribute('data-product-price') ?? '0') || 0;
 
-    cart = addItem(cart, { id, name, price });
-    writeCart(cart);
-    renderCart(cart);
-    openCart();
-  });
+  cart = addItem(cart, { id, name, price });
+  writeCart(cart);
+  renderCart(cart);
+  openCart();
 });
 
 cartItemsEl?.addEventListener('click', (e) => {

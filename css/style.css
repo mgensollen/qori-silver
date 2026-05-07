@@ -561,6 +561,19 @@ blockquote {
   margin-top: 0.15rem;
 }
 
+/* View photos link */
+.piece-photos {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--cream3);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.piece-photos:hover { opacity: 1; color: var(--gold-lt); }
+
 /* Piece "Add to cart" button */
 .piece-add {
   margin-top: 0.9rem;
@@ -857,7 +870,64 @@ blockquote {
   border: 1px solid rgba(201, 168, 76, 0.12);
   overflow: hidden;
 }
-.shop-img { aspect-ratio: 1; background: var(--dark3); display: flex; align-items: center; justify-content: center; }
+.shop-img { aspect-ratio: 1; background: var(--dark3); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+
+/* ── Carousel ── */
+.shop-img[data-carousel] { display: block; }
+
+.carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.35s ease;
+}
+.carousel-slide { min-width: 100%; flex-shrink: 0; }
+.carousel-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.carousel-prev,
+.carousel-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: rgba(12, 10, 7, 0.55);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  color: var(--gold-lt);
+  font-size: 1.4rem;
+  line-height: 1;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.shop-img:hover .carousel-prev,
+.shop-img:hover .carousel-next { opacity: 1; }
+.carousel-prev { left: 0.4rem; }
+.carousel-next { right: 0.4rem; }
+
+.carousel-dots {
+  position: absolute;
+  bottom: 0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  gap: 0.35rem;
+}
+.carousel-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s;
+}
+.carousel-dot.active { background: var(--gold); }
 .shop-meta { padding: 1.2rem 1.2rem 1.4rem; }
 
 /* ─────────────────────────────────────────

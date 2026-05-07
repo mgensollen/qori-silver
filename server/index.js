@@ -214,6 +214,107 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
+// ── Products — Google Sheets CSV ─────────────────────────────────────────────
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1aaO-kSnl6fonfOcFhUkl3jNNDLF5_iWgxxFZtLviiZU/export?format=csv';
+let _productsCache = null;
+let _productsCacheAt = 0;
+
+function parseCsvLine(line) {
+  const out = [];
+  let field = '';
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) {
+      if (c === '"' && line[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') { q = false; }
+      else field += c;
+    } else {
+      if (c === '"') q = true;
+      else if (c === ',') { out.push(field); field = ''; }
+      else field += c;
+    }
+  }
+  out.push(field);
+  return out;
+}
+
+function parseSheetPrice(s) {
+  if (!s) return null;
+  const n = parseFloat(s.replace(/[$,\s]/g, ''));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function driveFileId(url) {
+  if (!url) return null;
+  const m = url.match(/\/file\/d\/([^/?]+)/);
+  return m ? m[1] : null;
+}
+
+function parseImages(cell) {
+  if (!cell) return [];
+  return cell.split(',')
+    .map(u => driveFileId(u.trim()))
+    .filter(Boolean)
+    .map(id => `https://drive.google.com/thumbnail?id=${id}&sz=w800`);
+}
+
+function parseProducts(csv) {
+  const lines = csv.split('\n');
+  const typeCounts = {};
+  const rows = [];
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const c = parseCsvLine(line);
+    const rowNum = c[0]?.trim();
+    if (!rowNum || !/^\d+$/.test(rowNum)) continue;
+    const type = c[2]?.trim() || '';
+    const price = parseSheetPrice(c[9]);
+    if (!type || price === null) continue;
+
+    typeCounts[type] = (typeCounts[type] || 0) + 1;
+    rows.push({ _n: Number(rowNum), type, weight: c[3]?.trim() || '', length: c[4]?.trim() || '', price, images: parseImages(c[1]) });
+  }
+
+  const seen = {};
+  const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+  return rows.map(r => {
+    seen[r.type] = (seen[r.type] || 0) + 1;
+    const nth = seen[r.type];
+    const total = typeCounts[r.type];
+
+    const name = r.type === 'Chain' && total > 1
+      ? `Silver Chain ${numerals[nth - 1] || nth}`
+      : r.type === 'Chain w/ Clover' ? 'Silver Chain with Clover'
+      : r.type;
+
+    const category = r.type.startsWith('Earring') ? 'Earrings' : 'Chains';
+    const mat = [r.weight ? `${r.weight}g` : '', r.length || ''].filter(Boolean).join(' · ') || 'Sterling silver .925';
+
+    return { id: `product-${r._n}`, name, category, price: r.price, material: mat, images: r.images };
+  });
+}
+
+app.get('/api/products', async (req, res) => {
+  try {
+    if (_productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
+      return res.json(_productsCache);
+    }
+    const response = await fetch(SHEET_CSV_URL);
+    if (!response.ok) throw new Error(`Sheet fetch ${response.status}`);
+    const products = parseProducts(await response.text());
+    _productsCache = products;
+    _productsCacheAt = Date.now();
+    return res.json(products);
+  } catch (err) {
+    console.error('Products fetch error:', err?.message);
+    if (_productsCache) return res.json(_productsCache);
+    return res.status(502).json({ error: 'Could not load products.' });
+  }
+});
+
 const port = Number(process.env.PORT || 4242);
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
