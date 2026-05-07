@@ -6,6 +6,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 
 const app = express();
+// Render/NGINX style deployments sit behind a proxy. Trust it so `req.protocol`
+// and related helpers reflect `X-Forwarded-*` headers (https).
+app.set('trust proxy', 1);
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
@@ -101,6 +104,25 @@ function toCents(price) {
   return cents;
 }
 
+function normalizeOrigin(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/\/$/, '');
+}
+
+function getCheckoutReturnOrigin(req) {
+  // Prefer an explicit env var for correctness (recommended for production).
+  // Example: CHECKOUT_RETURN_ORIGIN=https://your-site.example.com
+  const fromEnv = normalizeOrigin(process.env.CHECKOUT_RETURN_ORIGIN);
+  if (fromEnv) return fromEnv;
+
+  // Fall back to the browser-provided Origin header (works for SPAs/static sites).
+  const fromHeader = normalizeOrigin(req.get('origin'));
+  if (fromHeader) return fromHeader;
+
+  // Last resort: derive from request URL (may be the API domain).
+  return `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
+}
+
 // Easiest MVP (no webhooks):
 // after redirect to /success.html?session_id=..., the browser calls this endpoint to persist the order.
 app.post('/api/save-order-from-session', async (req, res) => {
@@ -165,7 +187,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       return res.status(400).send('Cart is empty or invalid.');
     }
 
-    const origin = `${req.protocol}://${req.get('host')}`;
+    const returnOrigin = getCheckoutReturnOrigin(req);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -179,15 +201,16 @@ app.post('/api/create-checkout-session', async (req, res) => {
         },
         quantity: it.quantity,
       })),
-      success_url: `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cancel.html`,
-      automatic_tax: { enabled: false }
+      success_url: `${returnOrigin}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnOrigin}/cancel.html`,
+      automatic_tax: { enabled: false },
     });
 
     return res.json({ url: session.url });
   } catch (err) {
-    console.error(err);
-    return res.status(500).send('Failed to create Stripe Checkout session.');
+    console.error('Create checkout session failed:', err);
+    // Return a slightly more actionable message (safe: does not include secrets).
+    return res.status(500).send(err?.message || 'Failed to create Stripe Checkout session.');
   }
 });
 
