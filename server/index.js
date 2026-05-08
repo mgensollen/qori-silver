@@ -17,11 +17,16 @@ if (!stripeSecretKey) {
 
 const stripe = new Stripe(stripeSecretKey);
 
-const corsOrigin = process.env.CORS_ORIGIN || '';
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGIN || 'https://www.qorisilver.com,https://mgensollen.github.io')
+    .split(',').map(s => s.trim()).filter(Boolean)
+);
+
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
-    const origin = corsOrigin.trim();
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    const reqOrigin = req.get('origin') || '';
+    const allow = allowedOrigins.has(reqOrigin) ? reqOrigin : '*';
+    res.setHeader('Access-Control-Allow-Origin', allow);
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Stripe-Signature');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
