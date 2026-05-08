@@ -366,8 +366,8 @@ document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) =>
   e.preventDefault();
   if (cart.items.length === 0) return;
   startStripeCheckout(cart).catch((err) => {
-    console.error(err);
-    alert('Sorry — checkout is not available yet. Please try again in a moment.');
+    console.error('Checkout error:', err);
+    alert(`Checkout failed: ${err?.message || 'Unknown error'}. Check the browser console for details.`);
   });
 });
 
