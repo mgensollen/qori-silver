@@ -873,7 +873,8 @@ blockquote {
 .shop-img { aspect-ratio: 1; background: var(--dark3); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
 
 /* ── Carousel ── */
-.shop-img[data-carousel] { display: block; }
+.shop-img[data-carousel],
+.piece-img[data-carousel] { display: block; }
 
 .carousel-track {
   display: flex;
@@ -904,7 +905,9 @@ blockquote {
   transition: opacity 0.2s;
 }
 .shop-img:hover .carousel-prev,
-.shop-img:hover .carousel-next { opacity: 1; }
+.shop-img:hover .carousel-next,
+.piece-img:hover .carousel-prev,
+.piece-img:hover .carousel-next { opacity: 1; }
 .carousel-prev { left: 0.4rem; }
 .carousel-next { right: 0.4rem; }
 
