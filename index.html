@@ -394,6 +394,10 @@
   <script src="js/config.js"></script>
   <script src="js/main.js"></script>
   <script src="js/products.js"></script>
-  <script>initCarousels(document.querySelector('.pieces-grid'));</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initCarousels(document.querySelector('.pieces-grid'));
+    });
+  </script>
 </body>
 </html>

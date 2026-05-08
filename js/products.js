@@ -69,11 +69,15 @@ function buildCard(p) {
 }
 
 function initCarousels(container) {
+  if (!container) return;
+
   container.querySelectorAll('[data-carousel]').forEach(el => {
     const track = el.querySelector('.carousel-track');
     const slides = el.querySelectorAll('.carousel-slide');
     const dots   = el.querySelectorAll('.carousel-dot');
     const total  = slides.length;
+    if (!track || total === 0) return;
+
     let cur = 0;
 
     function go(n) {
@@ -88,10 +92,17 @@ function initCarousels(container) {
 
     // Touch swipe
     let tx = 0;
-    el.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+    let ty = 0;
+    el.addEventListener('touchstart', e => {
+      tx = e.touches[0].clientX;
+      ty = e.touches[0].clientY;
+    }, { passive: true });
     el.addEventListener('touchend', e => {
       const dx = e.changedTouches[0].clientX - tx;
-      if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1));
+      const dy = e.changedTouches[0].clientY - ty;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+        go(cur + (dx < 0 ? 1 : -1));
+      }
     });
   });
 }
