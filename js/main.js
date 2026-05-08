@@ -1,3 +1,5 @@
+
+
 /* ─────────────────────────────────────────
    QORI SILVER — Main JavaScript
    ───────────────────────────────────────── */
@@ -6,6 +8,55 @@
 function money(n) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
+
+function extractDriveId(url) {
+  if (!url) return '';
+  const byQuery = url.match(/[?&]id=([^&]+)/);
+  if (byQuery?.[1]) return byQuery[1];
+  const byPath = url.match(/\/d\/([^/]+)/);
+  if (byPath?.[1]) return byPath[1];
+  return '';
+}
+
+function driveFallbackSources(src) {
+  const id = extractDriveId(src);
+  if (!id) return [];
+  return [
+    `https://drive.google.com/uc?export=view&id=${id}`,
+    `https://lh3.googleusercontent.com/d/${id}=w1400`,
+  ];
+}
+
+function attachImageFallback(img) {
+  if (!(img instanceof HTMLImageElement)) return;
+  if (img.dataset.fallbackAttached === '1') return;
+  img.dataset.fallbackAttached = '1';
+
+  img.addEventListener('error', () => {
+    const queue = img.dataset.fallbackQueue ? JSON.parse(img.dataset.fallbackQueue) : driveFallbackSources(img.currentSrc || img.src);
+    if (!queue.length) return;
+    const next = queue.shift();
+    img.dataset.fallbackQueue = JSON.stringify(queue);
+    if (next && next !== img.src) img.src = next;
+  });
+
+  // If this image is already broken, immediately try fallback.
+  if (img.complete && img.naturalWidth === 0) {
+    const queue = driveFallbackSources(img.currentSrc || img.src);
+    const next = queue.shift();
+    img.dataset.fallbackQueue = JSON.stringify(queue);
+    if (next && next !== img.src) img.src = next;
+  }
+}
+
+function setupImageFallbacks() {
+  document.querySelectorAll('img').forEach(attachImageFallback);
+  document.addEventListener('error', (e) => {
+    if (e.target instanceof HTMLImageElement) attachImageFallback(e.target);
+  }, true);
+}
+
+setupImageFallbacks();
 
 /* ── Mobile nav toggle ── */
 const navToggle = document.querySelector('.nav-toggle');
@@ -266,18 +317,18 @@ document.querySelectorAll('[data-cart-close]').forEach(el => {
 
 cartOverlay?.addEventListener('click', closeCart);
 
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-add-to-cart]');
-  if (!btn) return;
-  e.preventDefault();
-  const id = btn.getAttribute('data-product-id') ?? 'test-item';
-  const name = btn.getAttribute('data-product-name') ?? 'Test Item';
-  const price = Number.parseFloat(btn.getAttribute('data-product-price') ?? '0') || 0;
+document.querySelectorAll('[data-add-to-cart]').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    const id = el.getAttribute('data-product-id') ?? 'test-item';
+    const name = el.getAttribute('data-product-name') ?? 'Test Item';
+    const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
 
-  cart = addItem(cart, { id, name, price });
-  writeCart(cart);
-  renderCart(cart);
-  openCart();
+    cart = addItem(cart, { id, name, price });
+    writeCart(cart);
+    renderCart(cart);
+    openCart();
+  });
 });
 
 cartItemsEl?.addEventListener('click', (e) => {

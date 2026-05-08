@@ -124,11 +124,6 @@ async function loadProducts() {
 
     grid.innerHTML = products.map(buildCard).join('');
 
-    // Replace broken images with placeholder
-    grid.querySelectorAll('.shop-img img').forEach(img => {
-      img.addEventListener('error', () => { img.style.display = 'none'; });
-    });
-
     initCarousels(grid);
   } catch (err) {
     console.error('Product load failed:', err);
