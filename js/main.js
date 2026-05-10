@@ -208,7 +208,7 @@ function renderCart(cart) {
     cartItemsEl.innerHTML = `
       <div class="cart-empty">
         <div class="cart-empty-title">Your cart is empty</div>
-        <div class="cart-empty-sub">Add a test item to preview the checkout flow.</div>
+        <div class="cart-empty-sub">Explore our collection and add a piece you love.</div>
       </div>
     `;
     return;
@@ -228,48 +228,6 @@ function renderCart(cart) {
       </div>
     </div>
   `).join('');
-}
-
-function showFakeCheckout(total) {
-  const existing = document.querySelector('[data-checkout-modal]');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.setAttribute('data-checkout-modal', 'true');
-  modal.className = 'checkout-modal-overlay open';
-  modal.innerHTML = `
-    <div class="checkout-modal" role="dialog" aria-modal="true" aria-label="Checkout (demo)">
-      <div class="checkout-modal-head">
-        <div class="checkout-modal-title">Checkout (Demo)</div>
-        <button class="checkout-close" type="button" data-checkout-close aria-label="Close">×</button>
-      </div>
-      <div class="checkout-modal-body">
-        <p>This is an MVP checkout preview (no payments yet).</p>
-        <div class="checkout-total"><span>Total</span><strong>${money(total)}</strong></div>
-        <div class="checkout-fields">
-          <label>Full name <input type="text" placeholder="Jane Doe" /></label>
-          <label>Email <input type="email" placeholder="jane@email.com" /></label>
-          <label>Shipping address <input type="text" placeholder="123 Main St, Cusco" /></label>
-        </div>
-        <button class="btn-primary checkout-cta" type="button" data-checkout-submit>Place order (demo)</button>
-        <div class="checkout-note">Later we’ll replace this with Shopify/Stripe/Snipcart.</div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.remove();
-  });
-  modal.querySelector('[data-checkout-close]')?.addEventListener('click', () => modal.remove());
-  modal.querySelector('[data-checkout-submit]')?.addEventListener('click', () => {
-    modal.remove();
-    const cart = { items: [] };
-    writeCart(cart);
-    renderCart(cart);
-    closeCart();
-    alert('Demo order placed. (Cart cleared)');
-  });
 }
 
 async function startStripeCheckout(cart) {
