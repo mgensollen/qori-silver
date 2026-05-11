@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Qori Silver">
+  <rect width="64" height="64" rx="10" fill="#0C0A07"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+  <path d="M22 21h20v6H22zm-4 6h28v6H18zm-2 6h32v10H16zm2 10h28v6H18zm4 6h20v6H22z" fill="#C9A84C"/>
+  <circle cx="32" cy="38" r="4.5" fill="#0C0A07"/>
+</svg>
