@@ -125,6 +125,127 @@ const cartOverlay = document.querySelector('[data-cart-overlay]');
 const cartItemsEl = document.querySelector('[data-cart-items]');
 const cartSubtotalEl = document.querySelector('[data-cart-subtotal]');
 const cartCountEl = document.querySelector('[data-cart-count]');
+let stripeMode = '';
+const inventoryById = new Map();
+
+function ensureStripeModeBadge() {
+  const cartFoot = document.querySelector('.cart-foot');
+  if (!cartFoot) return null;
+  let badge = cartFoot.querySelector('[data-stripe-mode-badge]');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.setAttribute('data-stripe-mode-badge', '1');
+    badge.className = 'stripe-mode-badge';
+    badge.hidden = true;
+    const cartActions = cartFoot.querySelector('.cart-actions');
+    if (cartActions) {
+      cartFoot.insertBefore(badge, cartActions);
+    } else {
+      cartFoot.appendChild(badge);
+    }
+  }
+  return badge;
+}
+
+function renderStripeModeBadge(mode) {
+  const badge = ensureStripeModeBadge();
+  if (!badge) return;
+  if (mode === 'test') {
+    badge.textContent = 'Stripe Test Mode';
+    badge.classList.add('is-test');
+    badge.classList.remove('is-live');
+    badge.hidden = false;
+    return;
+  }
+  if (mode === 'live') {
+    badge.textContent = 'Stripe Live Mode';
+    badge.classList.add('is-live');
+    badge.classList.remove('is-test');
+    badge.hidden = false;
+    return;
+  }
+  badge.hidden = true;
+}
+
+async function loadStripeMode() {
+  const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+  try {
+    const res = await fetch(`${apiBase}/api/stripe-mode`);
+    if (!res.ok) return;
+    const data = await res.json();
+    stripeMode = data?.mode === 'test' ? 'test' : data?.mode === 'live' ? 'live' : '';
+    renderStripeModeBadge(stripeMode);
+  } catch (err) {
+    console.warn('Stripe mode check failed:', err);
+  }
+}
+
+function getAvailableInventory(productId) {
+  if (!inventoryById.has(productId)) return Number.POSITIVE_INFINITY;
+  return Number(inventoryById.get(productId)) || 0;
+}
+
+function canAddQty(productId, nextQty) {
+  return nextQty <= getAvailableInventory(productId);
+}
+
+function applyInventoryToButtons() {
+  document.querySelectorAll('[data-add-to-cart]').forEach((el) => {
+    if (!(el instanceof HTMLButtonElement)) return;
+    const id = el.getAttribute('data-product-id') || '';
+    if (!id) return;
+    const available = getAvailableInventory(id);
+    const soldOut = available <= 0;
+    const card = el.closest('.piece, .shop-card');
+    const soldOutId = `soldout-${id}`;
+    const parent = el.parentElement;
+
+    if (parent) {
+      let msg = parent.querySelector(`[data-soldout-for="${id}"]`);
+      if (!msg) {
+        msg = document.createElement('div');
+        msg.className = 'soldout-note';
+        msg.setAttribute('data-soldout-for', id);
+        msg.id = soldOutId;
+        msg.innerHTML = '<span class="soldout-dot"></span>Sold out';
+        msg.hidden = true;
+        parent.insertBefore(msg, el);
+      }
+      msg.hidden = !soldOut;
+      if (soldOut) {
+        el.setAttribute('aria-describedby', soldOutId);
+      } else {
+        el.removeAttribute('aria-describedby');
+      }
+    }
+
+    if (card) {
+      card.classList.toggle('is-soldout', soldOut);
+    }
+
+    el.disabled = soldOut;
+    el.textContent = soldOut ? 'Unavailable' : 'Add to cart';
+  });
+}
+
+async function loadInventory() {
+  const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+  try {
+    const res = await fetch(`${apiBase}/api/products`);
+    if (!res.ok) return;
+    const products = await res.json();
+    if (!Array.isArray(products)) return;
+    inventoryById.clear();
+    for (const p of products) {
+      if (!p || typeof p.id !== 'string') continue;
+      const qty = Number.isFinite(Number(p.inventory)) ? Math.max(0, Math.floor(Number(p.inventory))) : Number.POSITIVE_INFINITY;
+      inventoryById.set(p.id, qty);
+    }
+    applyInventoryToButtons();
+  } catch (err) {
+    console.warn('Inventory load failed:', err);
+  }
+}
 
 function readCart() {
   const raw = window.localStorage.getItem('qori_cart');
@@ -189,6 +310,8 @@ function setQty(cart, id, qty) {
 
 function addItem(cart, item) {
   const existing = cart.items.find(i => i.id === item.id);
+  const nextQty = existing ? existing.qty + 1 : 1;
+  if (!canAddQty(item.id, nextQty)) return cart;
   if (existing) {
     existing.qty += 1;
   } else {
@@ -281,11 +404,17 @@ document.querySelectorAll('[data-add-to-cart]').forEach(el => {
     const id = el.getAttribute('data-product-id') ?? 'test-item';
     const name = el.getAttribute('data-product-name') ?? 'Test Item';
     const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
+    const previousQty = cart.items.find(i => i.id === id)?.qty || 0;
 
     cart = addItem(cart, { id, name, price });
     writeCart(cart);
     renderCart(cart);
-    openCart();
+    const nextQty = cart.items.find(i => i.id === id)?.qty || 0;
+    if (nextQty > previousQty) {
+      openCart();
+    } else {
+      alert('This item is out of stock.');
+    }
   });
 });
 
@@ -298,6 +427,10 @@ cartItemsEl?.addEventListener('click', (e) => {
   if (target.hasAttribute('data-cart-inc')) {
     const item = cart.items.find(i => i.id === id);
     if (!item) return;
+    if (!canAddQty(id, item.qty + 1)) {
+      alert('This item is out of stock.');
+      return;
+    }
     cart = setQty(cart, id, item.qty + 1);
   } else if (target.hasAttribute('data-cart-dec')) {
     const item = cart.items.find(i => i.id === id);
@@ -328,6 +461,9 @@ document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) =>
     alert(`Checkout failed: ${err?.message || 'Unknown error'}. Check the browser console for details.`);
   });
 });
+
+loadInventory();
+loadStripeMode();
 
 /* ── Console welcome ── */
 console.log('%cQori Silver', 'font-size:1.4rem;color:#C9A84C;font-family:serif');

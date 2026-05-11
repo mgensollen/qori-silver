@@ -56,7 +56,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       if (typeof sessionId !== 'string') throw new Error('Missing session id.');
 
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items', 'payment_intent'],
+        expand: ['line_items', 'line_items.data.price.product', 'payment_intent'],
       });
 
       const record = {
@@ -79,6 +79,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       };
 
       await appendOrderRecord(record);
+      await decrementInventoryFromSession(session);
     }
 
     return res.json({ received: true });
@@ -94,11 +95,43 @@ const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, '..');
 app.use(express.static(webRoot));
 
+const dataDir = path.resolve(__dirname, '..', 'data');
+const inventoryFile = path.join(dataDir, 'inventory.json');
+const processedSessionsFile = path.join(dataDir, 'processed-sessions.json');
+const INVENTORY_DEFAULT_QTY = 1;
+
 async function appendOrderRecord(record) {
-  const dataDir = path.resolve(__dirname, '..', 'data');
   await fs.mkdir(dataDir, { recursive: true });
   const outFile = path.join(dataDir, 'orders.jsonl');
   await fs.appendFile(outFile, `${JSON.stringify(record)}\n`, 'utf8');
+}
+
+async function readJsonFile(filePath, fallbackValue) {
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return fallbackValue;
+  }
+}
+
+async function writeJsonFile(filePath, value) {
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(filePath, JSON.stringify(value, null, 2), 'utf8');
+}
+
+function normalizeInventoryValue(value, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.floor(n));
+}
+
+function mapInventoryForProducts(products, inventoryMap) {
+  const next = {};
+  for (const p of products) {
+    next[p.id] = normalizeInventoryValue(inventoryMap[p.id], INVENTORY_DEFAULT_QTY);
+  }
+  return next;
 }
 
 function toCents(price) {
@@ -138,7 +171,7 @@ app.post('/api/save-order-from-session', async (req, res) => {
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['line_items', 'payment_intent'],
+      expand: ['line_items', 'line_items.data.price.product', 'payment_intent'],
     });
 
     if (session.payment_status !== 'paid') {
@@ -165,6 +198,7 @@ app.post('/api/save-order-from-session', async (req, res) => {
     };
 
     await appendOrderRecord(record);
+    await decrementInventoryFromSession(session);
     return res.json({ saved: true });
   } catch (err) {
     console.error(err);
@@ -175,20 +209,36 @@ app.post('/api/save-order-from-session', async (req, res) => {
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    const normalized = items
-      .filter((it) => it && typeof it.name === 'string')
-      .map((it) => {
-        const unitAmount = toCents(it.price);
-        const quantity = Math.max(1, Math.min(99, Math.floor(Number(it.qty) || 1)));
-        return {
-          name: it.name.slice(0, 200),
-          unitAmount,
-          quantity,
-        };
-      })
-      .filter((it) => it.unitAmount !== null);
+    const { products, inventory } = await getProductsWithInventory();
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const requested = [];
 
-    if (normalized.length === 0) {
+    for (const item of items) {
+      const id = typeof item?.id === 'string' ? item.id : '';
+      const product = byId.get(id);
+      if (!product) continue;
+      const quantity = Math.max(1, Math.min(99, Math.floor(Number(item.qty) || 1)));
+      const unitAmount = toCents(product.price);
+      if (unitAmount === null) continue;
+
+      const available = normalizeInventoryValue(inventory[id], INVENTORY_DEFAULT_QTY);
+      if (quantity > available) {
+        return res.status(409).json({
+          error: `Not enough inventory for ${product.name}.`,
+          productId: id,
+          available,
+        });
+      }
+
+      requested.push({
+        id,
+        name: product.name.slice(0, 200),
+        unitAmount,
+        quantity,
+      });
+    }
+
+    if (requested.length === 0) {
       return res.status(400).send('Cart is empty or invalid.');
     }
 
@@ -198,10 +248,13 @@ app.post('/api/create-checkout-session', async (req, res) => {
       mode: 'payment',
       billing_address_collection: 'required',
       shipping_address_collection: { allowed_countries: ['US'] },
-      line_items: normalized.map((it) => ({
+      line_items: requested.map((it) => ({
         price_data: {
           currency: 'usd',
-          product_data: { name: it.name },
+          product_data: {
+            name: it.name,
+            metadata: { product_id: it.id },
+          },
           unit_amount: it.unitAmount,
         },
         quantity: it.quantity,
@@ -302,22 +355,141 @@ function parseProducts(csv) {
   });
 }
 
+async function fetchProducts() {
+  if (_productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
+    return _productsCache;
+  }
+  const response = await fetch(SHEET_CSV_URL);
+  if (!response.ok) throw new Error(`Sheet fetch ${response.status}`);
+  const products = parseProducts(await response.text());
+  _productsCache = products;
+  _productsCacheAt = Date.now();
+  return products;
+}
+
+async function getProductsWithInventory() {
+  const products = await fetchProducts();
+  const current = await readJsonFile(inventoryFile, {});
+  const inventory = mapInventoryForProducts(products, current);
+  if (JSON.stringify(current) !== JSON.stringify(inventory)) {
+    await writeJsonFile(inventoryFile, inventory);
+  }
+  return { products, inventory };
+}
+
+async function markSessionProcessed(sessionId) {
+  const processed = await readJsonFile(processedSessionsFile, []);
+  const set = new Set(Array.isArray(processed) ? processed : []);
+  if (set.has(sessionId)) return false;
+  set.add(sessionId);
+  await writeJsonFile(processedSessionsFile, [...set]);
+  return true;
+}
+
+function normalizePurchasedItems(lineItems) {
+  const totals = {};
+  for (const line of lineItems ?? []) {
+    const productMetaId = line?.price?.product?.metadata?.product_id;
+    const fallbackId = line?.price?.product?.metadata?.id;
+    const productId = (typeof productMetaId === 'string' && productMetaId) || (typeof fallbackId === 'string' && fallbackId);
+    if (!productId) continue;
+    const qty = Math.max(1, Math.floor(Number(line?.quantity) || 1));
+    totals[productId] = (totals[productId] || 0) + qty;
+  }
+  return totals;
+}
+
+async function decrementInventoryFromSession(session) {
+  const sessionId = session?.id;
+  if (typeof sessionId !== 'string') throw new Error('Missing session id.');
+
+  const shouldProcess = await markSessionProcessed(sessionId);
+  if (!shouldProcess) return { updated: false, reason: 'already_processed' };
+
+  const purchased = normalizePurchasedItems(session?.line_items?.data ?? []);
+  const purchasedIds = Object.keys(purchased);
+  if (purchasedIds.length === 0) return { updated: false, reason: 'no_product_ids' };
+
+  const { products } = await getProductsWithInventory();
+  const current = await readJsonFile(inventoryFile, {});
+  const inventory = mapInventoryForProducts(products, current);
+
+  for (const id of purchasedIds) {
+    const next = normalizeInventoryValue(inventory[id], INVENTORY_DEFAULT_QTY) - purchased[id];
+    inventory[id] = Math.max(0, next);
+  }
+
+  await writeJsonFile(inventoryFile, inventory);
+  return { updated: true };
+}
+
 app.get('/api/products', async (req, res) => {
   try {
-    if (_productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
-      return res.json(_productsCache);
-    }
-    const response = await fetch(SHEET_CSV_URL);
-    if (!response.ok) throw new Error(`Sheet fetch ${response.status}`);
-    const products = parseProducts(await response.text());
-    _productsCache = products;
-    _productsCacheAt = Date.now();
-    return res.json(products);
+    const { products, inventory } = await getProductsWithInventory();
+    return res.json(products.map((p) => ({
+      ...p,
+      inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
+    })));
   } catch (err) {
     console.error('Products fetch error:', err?.message);
-    if (_productsCache) return res.json(_productsCache);
+    if (_productsCache) {
+      const current = await readJsonFile(inventoryFile, {});
+      const inventory = mapInventoryForProducts(_productsCache, current);
+      return res.json(_productsCache.map((p) => ({
+        ...p,
+        inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
+      })));
+    }
     return res.status(502).json({ error: 'Could not load products.' });
   }
+});
+
+app.get('/api/inventory', async (req, res) => {
+  try {
+    const { products, inventory } = await getProductsWithInventory();
+    const rows = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
+    }));
+    return res.json(rows);
+  } catch (err) {
+    console.error('Inventory fetch error:', err?.message);
+    return res.status(500).json({ error: 'Could not load inventory.' });
+  }
+});
+
+app.post('/api/inventory', async (req, res) => {
+  try {
+    const patch = req.body?.inventory;
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+      return res.status(400).json({ error: 'Expected inventory object.' });
+    }
+
+    const { products, inventory } = await getProductsWithInventory();
+    const validIds = new Set(products.map((p) => p.id));
+    let touched = 0;
+    for (const [id, value] of Object.entries(patch)) {
+      if (!validIds.has(id)) continue;
+      inventory[id] = normalizeInventoryValue(value, INVENTORY_DEFAULT_QTY);
+      touched += 1;
+    }
+    if (touched === 0) {
+      return res.status(400).json({ error: 'No valid product ids in payload.' });
+    }
+
+    await writeJsonFile(inventoryFile, inventory);
+    return res.json({ updated: touched });
+  } catch (err) {
+    console.error('Inventory update error:', err?.message);
+    return res.status(500).json({ error: 'Could not update inventory.' });
+  }
+});
+
+app.get('/api/stripe-mode', (req, res) => {
+  const mode = stripeSecretKey.startsWith('sk_test_') ? 'test' : 'live';
+  return res.json({ mode });
 });
 
 const port = Number(process.env.PORT || 4242);
