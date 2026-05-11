@@ -269,15 +269,50 @@ function normalizeOrigin(value) {
   return value.trim().replace(/\/$/, '');
 }
 
-function getCheckoutReturnOrigin(req) {
-  // Prefer an explicit env var for correctness (recommended for production).
-  // Example: CHECKOUT_RETURN_ORIGIN=https://your-site.example.com
+/** Base URL for Stripe return links (no trailing slash). Includes path for GitHub Pages project sites. */
+function returnBaseFromReferer(referer) {
+  if (!referer || typeof referer !== 'string') return '';
+  try {
+    const u = new URL(referer);
+    if (!/^https?:$/i.test(u.protocol)) return '';
+    let pathname = (u.pathname || '/').replace(/\/+$/, '');
+    const lastSeg = pathname.split('/').pop() || '';
+    if (lastSeg.includes('.')) {
+      pathname = pathname.slice(0, pathname.lastIndexOf('/'));
+    }
+    return `${u.origin}${pathname}`;
+  } catch {
+    return '';
+  }
+}
+
+function isAllowedReturnBase(base) {
+  if (!base) return false;
+  try {
+    return allowedOrigins.has(new URL(base).origin);
+  } catch {
+    return false;
+  }
+}
+
+function getCheckoutReturnOrigin(req, explicitBase) {
+  // Prefer an explicit env var (recommended for production).
+  // For GitHub *project* pages, include the repo path, e.g.
+  // CHECKOUT_RETURN_ORIGIN=https://user.github.io/repo-name
   const fromEnv = normalizeOrigin(process.env.CHECKOUT_RETURN_ORIGIN);
   if (fromEnv) return fromEnv;
 
-  // Fall back to the browser-provided Origin header (works for SPAs/static sites).
+  const fromBody = typeof explicitBase === 'string' ? normalizeOrigin(explicitBase.trim()) : '';
+  if (fromBody && isAllowedReturnBase(fromBody)) return fromBody;
+
+  // GitHub Pages: Origin is only https://user.github.io — missing /repo breaks success.html.
+  // Referer is often the full page URL (includes /repo/...), so derive the site base from it.
+  const fromReferer = returnBaseFromReferer(req.get('referer'));
+  if (fromReferer && isAllowedReturnBase(fromReferer)) return fromReferer;
+
+  // Fall back to the browser-provided Origin header (OK for apex / www sites at domain root).
   const fromHeader = normalizeOrigin(req.get('origin'));
-  if (fromHeader) return fromHeader;
+  if (fromHeader && isAllowedReturnBase(fromHeader)) return fromHeader;
 
   // Last resort: derive from request URL (may be the API domain).
   return `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
@@ -369,7 +404,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       return res.status(400).send('Cart is empty or invalid.');
     }
 
-    const returnOrigin = getCheckoutReturnOrigin(req);
+    const returnOrigin = getCheckoutReturnOrigin(req, req.body?.return_base);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

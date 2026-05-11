@@ -353,6 +353,15 @@ function renderCart(cart) {
   `).join('');
 }
 
+function computeCheckoutReturnBase() {
+  const path = window.location.pathname.replace(/\/+$/, '');
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length && /\.[a-zA-Z0-9]+$/.test(parts[parts.length - 1])) {
+    parts.pop();
+  }
+  return window.location.origin + (parts.length ? `/${parts.join('/')}` : '');
+}
+
 async function startStripeCheckout(cart) {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
   const items = (cart?.items ?? []).map(it => ({
@@ -365,7 +374,10 @@ async function startStripeCheckout(cart) {
   const res = await fetch(`${apiBase}/api/create-checkout-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({
+      items,
+      return_base: computeCheckoutReturnBase(),
+    }),
   });
 
   if (!res.ok) {
