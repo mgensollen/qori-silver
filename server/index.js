@@ -98,6 +98,7 @@ app.use(express.static(webRoot));
 const dataDir = path.resolve(__dirname, '..', 'data');
 const inventoryFile = path.join(dataDir, 'inventory.json');
 const processedSessionsFile = path.join(dataDir, 'processed-sessions.json');
+const stripeCatalogFile = path.join(dataDir, 'stripe-catalog.json');
 const INVENTORY_DEFAULT_QTY = 1;
 
 async function appendOrderRecord(record) {
@@ -131,6 +132,127 @@ function mapInventoryForProducts(products, inventoryMap) {
   for (const p of products) {
     next[p.id] = normalizeInventoryValue(inventoryMap[p.id], INVENTORY_DEFAULT_QTY);
   }
+  return next;
+}
+
+function toStripeUnitAmount(price) {
+  const cents = toCents(price);
+  if (cents === null) throw new Error('Invalid product price.');
+  return cents;
+}
+
+function buildStripeProductDescription(product) {
+  const parts = [
+    `Category: ${product.category}`,
+    product.material ? `Details: ${product.material}` : '',
+  ].filter(Boolean);
+  return parts.join(' | ').slice(0, 5000);
+}
+
+function normalizeStripeCatalog(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [id, value] of Object.entries(raw)) {
+    if (!value || typeof value !== 'object') continue;
+    out[id] = {
+      stripeProductId: typeof value.stripeProductId === 'string' ? value.stripeProductId : '',
+      stripePriceId: typeof value.stripePriceId === 'string' ? value.stripePriceId : '',
+      unitAmount: Number.isFinite(Number(value.unitAmount)) ? Number(value.unitAmount) : null,
+      syncedAt: typeof value.syncedAt === 'string' ? value.syncedAt : '',
+    };
+  }
+  return out;
+}
+
+async function getStripeProductByMetadataId(siteProductId) {
+  let startingAfter;
+  while (true) {
+    const page = await stripe.products.list({ limit: 100, active: true, starting_after: startingAfter });
+    const hit = page.data.find((p) => p?.metadata?.site_product_id === siteProductId);
+    if (hit) return hit;
+    if (!page.has_more || page.data.length === 0) return null;
+    startingAfter = page.data[page.data.length - 1].id;
+  }
+}
+
+async function ensureStripeProductAndPrice(product, catalog) {
+  const existing = catalog[product.id] ?? {};
+  const unitAmount = toStripeUnitAmount(product.price);
+  let stripeProduct = null;
+
+  if (existing.stripeProductId) {
+    try {
+      stripeProduct = await stripe.products.retrieve(existing.stripeProductId);
+      if (stripeProduct.deleted) stripeProduct = null;
+    } catch {
+      stripeProduct = null;
+    }
+  }
+
+  if (!stripeProduct) {
+    stripeProduct = await getStripeProductByMetadataId(product.id);
+  }
+
+  if (!stripeProduct) {
+    stripeProduct = await stripe.products.create({
+      name: product.name,
+      description: buildStripeProductDescription(product),
+      metadata: {
+        site_product_id: product.id,
+      },
+      images: Array.isArray(product.images) && product.images[0] ? [product.images[0]] : undefined,
+    });
+  } else {
+    await stripe.products.update(stripeProduct.id, {
+      name: product.name,
+      description: buildStripeProductDescription(product),
+      metadata: {
+        ...stripeProduct.metadata,
+        site_product_id: product.id,
+      },
+      images: Array.isArray(product.images) && product.images[0] ? [product.images[0]] : undefined,
+    });
+  }
+
+  let stripePriceId = existing.stripePriceId || '';
+  let mustCreatePrice = true;
+  if (stripePriceId) {
+    try {
+      const oldPrice = await stripe.prices.retrieve(stripePriceId);
+      mustCreatePrice = !oldPrice.active || oldPrice.unit_amount !== unitAmount || oldPrice.currency !== 'usd';
+    } catch {
+      mustCreatePrice = true;
+    }
+  }
+
+  if (mustCreatePrice) {
+    const newPrice = await stripe.prices.create({
+      currency: 'usd',
+      unit_amount: unitAmount,
+      product: stripeProduct.id,
+      metadata: { site_product_id: product.id },
+    });
+    stripePriceId = newPrice.id;
+    await stripe.products.update(stripeProduct.id, { default_price: stripePriceId });
+  }
+
+  catalog[product.id] = {
+    stripeProductId: stripeProduct.id,
+    stripePriceId,
+    unitAmount,
+    syncedAt: new Date().toISOString(),
+  };
+
+  return catalog[product.id];
+}
+
+async function syncStripeCatalog(products) {
+  const current = normalizeStripeCatalog(await readJsonFile(stripeCatalogFile, {}));
+  const next = { ...current };
+  for (const product of products) {
+    await ensureStripeProductAndPrice(product, next);
+  }
+  await writeJsonFile(stripeCatalogFile, next);
   return next;
 }
 
@@ -210,6 +332,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
   try {
     const items = Array.isArray(req.body?.items) ? req.body.items : [];
     const { products, inventory } = await getProductsWithInventory();
+    const stripeCatalog = await syncStripeCatalog(products);
     const byId = new Map(products.map((p) => [p.id, p]));
     const requested = [];
 
@@ -220,6 +343,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
       const quantity = Math.max(1, Math.min(99, Math.floor(Number(item.qty) || 1)));
       const unitAmount = toCents(product.price);
       if (unitAmount === null) continue;
+      const stripeProduct = stripeCatalog[id];
+      if (!stripeProduct?.stripePriceId) {
+        return res.status(500).json({ error: `Stripe product sync failed for ${product.name}.` });
+      }
 
       const available = normalizeInventoryValue(inventory[id], INVENTORY_DEFAULT_QTY);
       if (quantity > available) {
@@ -233,7 +360,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       requested.push({
         id,
         name: product.name.slice(0, 200),
-        unitAmount,
+        stripePriceId: stripeProduct.stripePriceId,
         quantity,
       });
     }
@@ -249,14 +376,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       billing_address_collection: 'required',
       shipping_address_collection: { allowed_countries: ['US'] },
       line_items: requested.map((it) => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: it.name,
-            metadata: { product_id: it.id },
-          },
-          unit_amount: it.unitAmount,
-        },
+        price: it.stripePriceId,
         quantity: it.quantity,
       })),
       success_url: `${returnOrigin}/success.html?session_id={CHECKOUT_SESSION_ID}`,
@@ -390,8 +510,12 @@ function normalizePurchasedItems(lineItems) {
   const totals = {};
   for (const line of lineItems ?? []) {
     const productMetaId = line?.price?.product?.metadata?.product_id;
+    const siteProductId = line?.price?.product?.metadata?.site_product_id;
     const fallbackId = line?.price?.product?.metadata?.id;
-    const productId = (typeof productMetaId === 'string' && productMetaId) || (typeof fallbackId === 'string' && fallbackId);
+    const productId =
+      (typeof productMetaId === 'string' && productMetaId) ||
+      (typeof siteProductId === 'string' && siteProductId) ||
+      (typeof fallbackId === 'string' && fallbackId);
     if (!productId) continue;
     const qty = Math.max(1, Math.floor(Number(line?.quantity) || 1));
     totals[productId] = (totals[productId] || 0) + qty;
@@ -484,6 +608,28 @@ app.post('/api/inventory', async (req, res) => {
   } catch (err) {
     console.error('Inventory update error:', err?.message);
     return res.status(500).json({ error: 'Could not update inventory.' });
+  }
+});
+
+app.post('/api/stripe-sync-products', async (req, res) => {
+  try {
+    const expectedToken = (process.env.STRIPE_SYNC_TOKEN || '').trim();
+    if (expectedToken) {
+      const provided = (req.get('x-sync-token') || '').trim();
+      if (!provided || provided !== expectedToken) {
+        return res.status(403).json({ error: 'Forbidden.' });
+      }
+    }
+
+    const { products } = await getProductsWithInventory();
+    const catalog = await syncStripeCatalog(products);
+    return res.json({
+      synced: products.length,
+      catalogSize: Object.keys(catalog).length,
+    });
+  } catch (err) {
+    console.error('Stripe sync error:', err?.message || err);
+    return res.status(500).json({ error: 'Could not sync Stripe products.' });
   }
 });
 
