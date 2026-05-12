@@ -11,6 +11,8 @@ function money(n) {
 
 function extractDriveId(url) {
   if (!url) return '';
+  if (/res\.cloudinary\.com\//i.test(url)) return '';
+  if (/\.supabase\.co\/storage\//i.test(url)) return '';
   const byQuery = url.match(/[?&]id=([^&]+)/);
   if (byQuery?.[1]) return byQuery[1];
   const byPath = url.match(/\/d\/([^/]+)/);
@@ -19,6 +21,9 @@ function extractDriveId(url) {
 }
 
 function driveFallbackSources(src) {
+  if (!src) return [];
+  if (/res\.cloudinary\.com\//i.test(src)) return [];
+  if (/\.supabase\.co\/storage\//i.test(src)) return [];
   const id = extractDriveId(src);
   if (!id) return [];
   return [

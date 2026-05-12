@@ -4,6 +4,12 @@ import Stripe from 'stripe';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import {
+  inventoryUsesSupabase,
+  inventoryStateEquals,
+  readInventoryMap,
+  writeInventoryMap,
+} from './inventory-store.js';
 
 const app = express();
 // Render/NGINX style deployments sit behind a proxy. Trust it so `req.protocol`
@@ -477,10 +483,17 @@ function driveFileId(url) {
 
 function parseImages(cell) {
   if (!cell) return [];
-  return cell.split(',')
-    .map(u => driveFileId(u.trim()))
+  return cell
+    .split(',')
+    .map((u) => u.trim())
     .filter(Boolean)
-    .map(id => `https://drive.google.com/thumbnail?id=${id}&sz=w800`);
+    .map((u) => {
+      const driveId = driveFileId(u);
+      if (driveId) return `https://drive.google.com/thumbnail?id=${driveId}&sz=w800`;
+      if (/^https?:\/\//i.test(u)) return u;
+      return null;
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -581,10 +594,10 @@ async function fetchProducts() {
 
 async function getProductsWithInventory() {
   const products = await fetchProducts();
-  const current = await readJsonFile(inventoryFile, {});
+  const current = await readInventoryMap(inventoryFile, readJsonFile);
   const inventory = mapInventoryForProducts(products, current);
-  if (JSON.stringify(current) !== JSON.stringify(inventory)) {
-    await writeJsonFile(inventoryFile, inventory);
+  if (!inventoryStateEquals(current, inventory)) {
+    await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
   }
   return { products, inventory };
 }
@@ -633,7 +646,7 @@ async function decrementInventoryFromSession(session) {
   if (!shouldProcess) return { updated: false, reason: 'already_processed' };
 
   const { products } = await getProductsWithInventory();
-  const current = await readJsonFile(inventoryFile, {});
+  const current = await readInventoryMap(inventoryFile, readJsonFile);
   const inventory = mapInventoryForProducts(products, current);
   const catalogIds = new Set(products.map((p) => p.id));
 
@@ -650,7 +663,7 @@ async function decrementInventoryFromSession(session) {
   for (const p of products) {
     inventoryOut[p.id] = inventory[p.id];
   }
-  await writeJsonFile(inventoryFile, inventoryOut);
+  await writeInventoryMap(inventoryFile, inventoryOut, writeJsonFile);
   return { updated: true };
 }
 
@@ -667,7 +680,7 @@ app.get('/api/products', async (req, res) => {
   } catch (err) {
     console.error('Products fetch error:', err?.message);
     if (_productsCache) {
-      const current = await readJsonFile(inventoryFile, {});
+      const current = await readInventoryMap(inventoryFile, readJsonFile);
       const inventory = mapInventoryForProducts(_productsCache, current);
       return res.json(_productsCache.map((p) => {
         const { sheetStock, ...rest } = p;
@@ -716,7 +729,7 @@ app.post('/api/inventory', async (req, res) => {
       return res.status(400).json({ error: 'No valid product ids in payload.' });
     }
 
-    await writeJsonFile(inventoryFile, inventory);
+    await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
     return res.json({ updated: touched });
   } catch (err) {
     console.error('Inventory update error:', err?.message);
@@ -754,5 +767,10 @@ app.get('/api/stripe-mode', (req, res) => {
 const port = Number(process.env.PORT || 4242);
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
+  console.log(
+    inventoryUsesSupabase()
+      ? 'Inventory backend: Supabase Postgres (product_inventory)'
+      : 'Inventory backend: data/inventory.json — set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY to use Supabase',
+  );
 });
 

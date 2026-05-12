@@ -6,6 +6,7 @@
     "start": "node server/index.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "stripe": "^17.7.0"
