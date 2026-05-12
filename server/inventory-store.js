@@ -1,18 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (process.env.SUPABASE_URL || '').trim();
-const supabaseServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-
 let _client;
+
+function supabaseUrl() {
+  let u = (process.env.SUPABASE_URL || '').trim();
+  if (u) return u.replace(/\/$/, '');
+  const ref = (process.env.SUPABASE_PROJECT_REF || '').trim();
+  if (!ref) return '';
+  const host = ref.replace(/^https?:\/\//i, '').replace(/\.supabase\.co\/?.*$/i, '').split('/')[0].trim();
+  if (!host || host.includes('.')) return '';
+  return `https://${host}.supabase.co`;
+}
+
+function supabaseServiceKey() {
+  return (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+}
 
 /** When set, inventory is read/written in Postgres via Supabase instead of data/inventory.json */
 export function inventoryUsesSupabase() {
-  return Boolean(supabaseUrl && supabaseServiceKey);
+  return Boolean(supabaseUrl() && supabaseServiceKey());
 }
 
 function getClient() {
   if (!inventoryUsesSupabase()) return null;
-  if (!_client) _client = createClient(supabaseUrl, supabaseServiceKey);
+  if (!_client) _client = createClient(supabaseUrl(), supabaseServiceKey());
   return _client;
 }
 
