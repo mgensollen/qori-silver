@@ -130,7 +130,18 @@ function normalizeInventoryValue(value, fallback = 0) {
 function mapInventoryForProducts(products, inventoryMap) {
   const next = {};
   for (const p of products) {
-    next[p.id] = normalizeInventoryValue(inventoryMap[p.id], INVENTORY_DEFAULT_QTY);
+    const hasFile = Object.prototype.hasOwnProperty.call(inventoryMap, p.id);
+    const fromSheet =
+      p.sheetStock != null && Number.isFinite(Number(p.sheetStock))
+        ? normalizeInventoryValue(p.sheetStock, INVENTORY_DEFAULT_QTY)
+        : null;
+    if (hasFile) {
+      next[p.id] = normalizeInventoryValue(inventoryMap[p.id], INVENTORY_DEFAULT_QTY);
+    } else if (fromSheet != null) {
+      next[p.id] = fromSheet;
+    } else {
+      next[p.id] = INVENTORY_DEFAULT_QTY;
+    }
   }
   return next;
 }
@@ -472,22 +483,59 @@ function parseImages(cell) {
     .map(id => `https://drive.google.com/thumbnail?id=${id}&sz=w800`);
 }
 
+/**
+ * Column index for stock in the Google Sheet CSV (same doc as SHEET_CSV_URL).
+ * Matches a header cell named Inventory (or common aliases), case-insensitive.
+ */
+function findStockColumnIndex(c) {
+  const labels = new Set(['inventory', 'stock', 'qty', 'quantity', 'available', 'inventario']);
+  for (let i = 0; i < c.length; i++) {
+    const h = (c[i] || '').trim().toLowerCase();
+    if (labels.has(h)) return i;
+  }
+  return null;
+}
+
 function parseProducts(csv) {
   const lines = csv.split('\n');
+  let stockColIndex = null;
   const typeCounts = {};
   const rows = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
     const c = parseCsvLine(line);
+    const invIdx = findStockColumnIndex(c);
+    if (invIdx != null) stockColIndex = invIdx;
+
     const rowNum = c[0]?.trim();
-    if (!rowNum || !/^\d+$/.test(rowNum)) continue;
+    if (!rowNum) continue;
+
+    if (!/^\d+$/.test(rowNum)) continue;
+
     const type = c[2]?.trim() || '';
     const price = parseSheetPrice(c[9]);
     if (!type || price === null) continue;
 
+    let sheetStock = null;
+    if (stockColIndex != null && stockColIndex < c.length) {
+      const raw = (c[stockColIndex] ?? '').trim();
+      if (raw !== '') {
+        const n = Number.parseInt(raw, 10);
+        if (Number.isFinite(n)) sheetStock = Math.max(0, n);
+      }
+    }
+
     typeCounts[type] = (typeCounts[type] || 0) + 1;
-    rows.push({ _n: Number(rowNum), type, weight: c[3]?.trim() || '', length: c[4]?.trim() || '', price, images: parseImages(c[1]) });
+    rows.push({
+      _n: Number(rowNum),
+      type,
+      weight: c[3]?.trim() || '',
+      length: c[4]?.trim() || '',
+      price,
+      images: parseImages(c[1]),
+      sheetStock,
+    });
   }
 
   const seen = {};
@@ -506,7 +554,16 @@ function parseProducts(csv) {
     const category = r.type.startsWith('Earring') ? 'Earrings' : 'Chains';
     const mat = [r.weight ? `${r.weight}g` : '', r.length || ''].filter(Boolean).join(' · ') || 'Sterling silver .925';
 
-    return { id: `product-${r._n}`, name, category, price: r.price, material: mat, images: r.images };
+    const product = {
+      id: `product-${r._n}`,
+      name,
+      category,
+      price: r.price,
+      material: mat,
+      images: r.images,
+    };
+    if (r.sheetStock != null) product.sheetStock = r.sheetStock;
+    return product;
   });
 }
 
@@ -544,13 +601,19 @@ async function markSessionProcessed(sessionId) {
 function normalizePurchasedItems(lineItems) {
   const totals = {};
   for (const line of lineItems ?? []) {
-    const productMetaId = line?.price?.product?.metadata?.product_id;
-    const siteProductId = line?.price?.product?.metadata?.site_product_id;
-    const fallbackId = line?.price?.product?.metadata?.id;
-    const productId =
-      (typeof productMetaId === 'string' && productMetaId) ||
-      (typeof siteProductId === 'string' && siteProductId) ||
-      (typeof fallbackId === 'string' && fallbackId);
+    const price = line?.price;
+    const productObj =
+      typeof price?.product === 'object' && price?.product && !Array.isArray(price.product)
+        ? price.product
+        : null;
+    const siteFromMeta = productObj?.metadata?.site_product_id ?? price?.metadata?.site_product_id;
+    const siteProductId = typeof siteFromMeta === 'string' ? siteFromMeta.trim() : '';
+    const productMetaId =
+      typeof productObj?.metadata?.product_id === 'string' ? productObj.metadata.product_id.trim() : '';
+    const fallbackId =
+      typeof productObj?.metadata?.id === 'string' ? productObj.metadata.id.trim() : '';
+    /** Catalog ids are site_product_id (e.g. product-3). Prefer it so a shared legacy product_id cannot collapse many lines into one id. */
+    const productId = siteProductId || productMetaId || fallbackId;
     if (!productId) continue;
     const qty = Math.max(1, Math.floor(Number(line?.quantity) || 1));
     totals[productId] = (totals[productId] || 0) + qty;
@@ -562,42 +625,57 @@ async function decrementInventoryFromSession(session) {
   const sessionId = session?.id;
   if (typeof sessionId !== 'string') throw new Error('Missing session id.');
 
-  const shouldProcess = await markSessionProcessed(sessionId);
-  if (!shouldProcess) return { updated: false, reason: 'already_processed' };
-
   const purchased = normalizePurchasedItems(session?.line_items?.data ?? []);
   const purchasedIds = Object.keys(purchased);
   if (purchasedIds.length === 0) return { updated: false, reason: 'no_product_ids' };
 
+  const shouldProcess = await markSessionProcessed(sessionId);
+  if (!shouldProcess) return { updated: false, reason: 'already_processed' };
+
   const { products } = await getProductsWithInventory();
   const current = await readJsonFile(inventoryFile, {});
   const inventory = mapInventoryForProducts(products, current);
+  const catalogIds = new Set(products.map((p) => p.id));
 
   for (const id of purchasedIds) {
+    if (!catalogIds.has(id)) {
+      console.warn(`Inventory decrement skipped unknown line-item id (not in catalog): ${id}`);
+      continue;
+    }
     const next = normalizeInventoryValue(inventory[id], INVENTORY_DEFAULT_QTY) - purchased[id];
     inventory[id] = Math.max(0, next);
   }
 
-  await writeJsonFile(inventoryFile, inventory);
+  const inventoryOut = {};
+  for (const p of products) {
+    inventoryOut[p.id] = inventory[p.id];
+  }
+  await writeJsonFile(inventoryFile, inventoryOut);
   return { updated: true };
 }
 
 app.get('/api/products', async (req, res) => {
   try {
     const { products, inventory } = await getProductsWithInventory();
-    return res.json(products.map((p) => ({
-      ...p,
-      inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
-    })));
+    return res.json(products.map((p) => {
+      const { sheetStock, ...rest } = p;
+      return {
+        ...rest,
+        inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
+      };
+    }));
   } catch (err) {
     console.error('Products fetch error:', err?.message);
     if (_productsCache) {
       const current = await readJsonFile(inventoryFile, {});
       const inventory = mapInventoryForProducts(_productsCache, current);
-      return res.json(_productsCache.map((p) => ({
-        ...p,
-        inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
-      })));
+      return res.json(_productsCache.map((p) => {
+        const { sheetStock, ...rest } = p;
+        return {
+          ...rest,
+          inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
+        };
+      }));
     }
     return res.status(502).json({ error: 'Could not load products.' });
   }

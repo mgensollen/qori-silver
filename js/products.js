@@ -125,6 +125,7 @@ async function loadProducts() {
     grid.innerHTML = products.map(buildCard).join('');
 
     initCarousels(grid);
+    document.dispatchEvent(new CustomEvent('qori:shop-products-rendered'));
   } catch (err) {
     console.error('Product load failed:', err);
     grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products — please refresh.</p>';

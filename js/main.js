@@ -477,6 +477,10 @@ document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) =>
 loadInventory();
 loadStripeMode();
 
+document.addEventListener('qori:shop-products-rendered', () => {
+  loadInventory();
+});
+
 /* ── Console welcome ── */
 console.log('%cQori Silver', 'font-size:1.4rem;color:#C9A84C;font-family:serif');
 console.log('%cHandcrafted in Cusco, Peru · Sterling .925', 'color:#4EC9B0;font-size:.85rem');
