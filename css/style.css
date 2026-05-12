@@ -12,17 +12,17 @@
   --gold-line:    rgba(200, 169, 106, 0.13);
   --gold-line2:   rgba(200, 169, 106, 0.22);
 
-  /* Surface — warm dark */
-  --ink:          #0B0906;
-  --ink2:         #110E0A;
-  --ink3:         #181310;
-  --ink4:         #1E1814;
+  /* Surface — Andean warm earth (Sacred Valley dark soil / aged pottery) */
+  --ink:          #211510;
+  --ink2:         #2A1B0E;
+  --ink3:         #33200F;
+  --ink4:         #180D07;
 
   /* Text */
   --cream:        #F4EDE2;
-  --cream2:       rgba(244, 237, 226, 0.68);
-  --cream3:       rgba(244, 237, 226, 0.38);
-  --cream4:       rgba(244, 237, 226, 0.15);
+  --cream2:       rgba(244, 237, 226, 0.70);
+  --cream3:       rgba(244, 237, 226, 0.40);
+  --cream4:       rgba(244, 237, 226, 0.16);
 
   /* Functional */
   --teal:         #1D8A7A;
@@ -33,10 +33,10 @@
   --jade-lt:      #66BB6A;
 
   /* Legacy aliases — kept for inline HTML styles */
-  --dark:         #0B0906;
-  --dark2:        #110E0A;
-  --dark3:        #181310;
-  --dark4:        #1E1814;
+  --dark:         #211510;
+  --dark2:        #2A1B0E;
+  --dark3:        #33200F;
+  --dark4:        #180D07;
   --cobalt:       #1A5AA0;
   --cobalt-lt:    #4A90D9;
   --jade:         #2E7D32;
@@ -182,7 +182,7 @@ a { text-decoration: none; }
   align-items: center;
   justify-content: space-between;
   padding: 1.4rem clamp(1.5rem, 5vw, 4rem);
-  background: rgba(11, 9, 6, 0.97);
+  background: rgba(33, 21, 16, 0.97);
   border-bottom: 1px solid var(--gold-line);
   position: sticky;
   top: 0;
@@ -410,7 +410,7 @@ h1 em {
 
 /* Product image container — warm neutral, lets jewelry pop */
 .piece-img {
-  background: #1D1712;
+  background: #2A1B0E;
   aspect-ratio: 1;
   display: flex;
   align-items: stretch;
@@ -547,7 +547,7 @@ h1 em {
 }
 
 .story-card {
-  background: rgba(11, 9, 6, 0.55);
+  background: rgba(33, 21, 16, 0.55);
   border: 1px solid var(--gold-line);
   padding: 2.8rem 2.4rem;
   transition: border-color 0.35s;
@@ -589,7 +589,7 @@ h1 em {
 .card-art svg { width: 100%; height: 100%; }
 .card-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(11,9,6,0.92) 0%, rgba(11,9,6,0.2) 55%, transparent 100%);
+  background: linear-gradient(to top, rgba(33,21,16,0.92) 0%, rgba(33,21,16,0.2) 55%, transparent 100%);
   opacity: 0.6; transition: opacity 0.4s;
   display: flex; flex-direction: column; justify-content: flex-end; padding: 2rem;
 }
@@ -617,7 +617,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 
 .cart-overlay {
   position: fixed; inset: 0;
-  background: rgba(11,9,6,0.72);
+  background: rgba(33,21,16,0.72);
   opacity: 0; pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 180;
@@ -668,7 +668,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 .cart-items { display: grid; gap: 1rem; }
 
 .cart-item {
-  background: rgba(11,9,6,0.35);
+  background: rgba(33,21,16,0.35);
   border: 1px solid var(--gold-line);
   padding: 1rem 1rem;
   display: grid; gap: 0.8rem;
@@ -721,7 +721,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
    ═══════════════════════════════════════════════════ */
 .checkout-modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(11,9,6,0.82);
+  background: rgba(33,21,16,0.82);
   display: flex; align-items: center; justify-content: center;
   padding: 1.5rem; z-index: 300;
   backdrop-filter: blur(8px);
@@ -747,13 +747,13 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   display: flex; justify-content: space-between; align-items: center;
   padding: 0.9rem 1rem;
   border: 1px solid var(--gold-line);
-  background: rgba(11,9,6,0.3);
+  background: rgba(33,21,16,0.3);
 }
 .checkout-fields { margin-top: 1.2rem; display: grid; gap: 0.9rem; }
 .checkout-fields label { display: grid; gap: 0.4rem; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream3); }
 .checkout-fields input {
   padding: 0.82rem 0.9rem;
-  background: rgba(11,9,6,0.4);
+  background: rgba(33,21,16,0.4);
   border: 1px solid var(--gold-line);
   color: var(--cream); outline: none;
   font-size: 16px; font-family: 'Cormorant Garamond', serif;
@@ -795,7 +795,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 
 .shop-img {
   aspect-ratio: 1;
-  background: #1D1712;
+  background: #2A1B0E;
   display: flex; align-items: stretch; justify-content: center;
   position: relative; overflow: hidden;
 }
@@ -829,7 +829,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 .carousel-next {
   position: absolute; top: 50%; transform: translateY(-50%);
   z-index: 2;
-  background: rgba(11,9,6,0.65);
+  background: rgba(33,21,16,0.65);
   border: 1px solid rgba(200,169,106,0.2);
   color: var(--gold-lt);
   font-size: 1.4rem; line-height: 1;
@@ -928,7 +928,7 @@ footer {
   .nav-links.open {
     display: flex; flex-direction: column;
     position: absolute; top: 100%; left: 0; right: 0;
-    background: rgba(11,9,6,0.98);
+    background: rgba(33,21,16,0.98);
     padding: 1.8rem clamp(1.5rem,5vw,4rem);
     gap: 1.4rem;
     border-bottom: 1px solid var(--gold-line);
