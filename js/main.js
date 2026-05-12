@@ -488,4 +488,4 @@ document.addEventListener('qori:shop-products-rendered', () => {
 
 /* ── Console welcome ── */
 console.log('%cQori Silver', 'font-size:1.4rem;color:#C9A84C;font-family:serif');
-console.log('%cHandcrafted in Cusco, Peru · Sterling .925', 'color:#4EC9B0;font-size:.85rem');
+console.log('%cHandcrafted in Cusco, Peru · Sterling .95', 'color:#4EC9B0;font-size:.85rem');

@@ -27,7 +27,7 @@ function parseCsvLine(line) {
   return out;
 }
 
-function parseSheetPrice(s) {
+export function parseSheetPrice(s) {
   if (!s) return null;
   const n = parseFloat(s.replace(/[$,\s]/g, ''));
   return Number.isFinite(n) && n > 0 ? n : null;
@@ -39,7 +39,7 @@ function driveFileId(url) {
   return m ? m[1] : null;
 }
 
-function parseImages(cell) {
+export function parseImages(cell) {
   if (!cell) return [];
   return cell
     .split(',')
@@ -63,11 +63,15 @@ function findStockColumnIndex(c) {
   return null;
 }
 
-export function parseProducts(csv) {
+/**
+ * Raw rows that pass the same product filter as parseProducts (type + price in col 9).
+ * @returns {{ rawRows: Array<{ _n: number, c: string[], type: string, weight: string, length: string, price: number, sheetStock: number|null }>, typeCounts: Record<string, number> }}
+ */
+function collectSheetProductableRows(csv) {
   const lines = csv.split('\n');
   let stockColIndex = null;
   const typeCounts = {};
-  const rows = [];
+  const rawRows = [];
 
   for (const line of lines) {
     if (!line.trim()) continue;
@@ -94,21 +98,26 @@ export function parseProducts(csv) {
     }
 
     typeCounts[type] = (typeCounts[type] || 0) + 1;
-    rows.push({
+    rawRows.push({
       _n: Number(rowNum),
+      c,
       type,
       weight: c[3]?.trim() || '',
       length: c[4]?.trim() || '',
       price,
-      images: parseImages(c[1]),
       sheetStock,
     });
   }
 
+  return { rawRows, typeCounts };
+}
+
+export function parseProducts(csv) {
+  const { rawRows, typeCounts } = collectSheetProductableRows(csv);
   const seen = {};
   const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
-  return rows.map((r) => {
+  return rawRows.map((r) => {
     seen[r.type] = (seen[r.type] || 0) + 1;
     const nth = seen[r.type];
     const total = typeCounts[r.type];
@@ -127,9 +136,35 @@ export function parseProducts(csv) {
       category,
       price: r.price,
       material: mat,
-      images: r.images,
+      images: parseImages(r.c[1]),
     };
     if (r.sheetStock != null) product.sheetStock = r.sheetStock;
     return product;
+  });
+}
+
+/** Rows for Supabase `catalog_sheet` upsert (columns mirror the Google Sheet). */
+export function parseCatalogSheetUpsertRows(csv) {
+  const { rawRows } = collectSheetProductableRows(csv);
+  return rawRows.map((r) => {
+    const c = r.c;
+    const inv = r.sheetStock != null ? r.sheetStock : 1;
+    return {
+      row_number: r._n,
+      site_product_id: `product-${r._n}`,
+      picture: (c[1] ?? '').trim(),
+      type: (c[2] ?? '').trim(),
+      weight_grams: (c[3] ?? '').trim(),
+      length_inches: (c[4] ?? '').trim(),
+      cost_per_gram_sol: (c[5] ?? '').trim(),
+      cost_per_gram_usd: (c[6] ?? '').trim(),
+      sale_price_per_gram: (c[7] ?? '').trim(),
+      total_price_paid_sol: (c[8] ?? '').trim(),
+      total_price_paid_usd: (c[9] ?? '').trim(),
+      list_price: (c[10] ?? '').trim(),
+      total_sale_list_price: (c[11] ?? '').trim(),
+      profit: (c[12] ?? '').trim(),
+      inventory: inv,
+    };
   });
 }

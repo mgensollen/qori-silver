@@ -76,8 +76,8 @@ Prevents duplicate-content penalties if the site is ever accessible at multiple 
 
 | Page | Meta Description |
 |---|---|
-| `index.html` | Shop handcrafted sterling silver jewelry from Peru. Qori Silver crafts Andean-inspired necklaces, bracelets and earrings in .925 silver — made to order with free worldwide shipping. |
-| `shop.html` | Browse handcrafted Peruvian sterling silver necklaces, bracelets and earrings. Each piece is made to order in .925 silver, inspired by Andean and Inca symbols. Free worldwide shipping. |
+| `index.html` | Shop handcrafted sterling silver jewelry from Peru. Qori Silver crafts Andean-inspired necklaces, bracelets and earrings in .95 silver — made to order with free worldwide shipping. |
+| `shop.html` | Browse handcrafted Peruvian sterling silver necklaces, bracelets and earrings. Each piece is made to order in .95 silver, inspired by Andean and Inca symbols. Free worldwide shipping. |
 | `care.html` | Complete guide to cleaning, storing and polishing sterling silver jewelry. Learn how to prevent tarnish, restore shine at home, and protect gemstone pieces. |
 | `shipping.html` | Qori Silver ships worldwide for free on all orders. Not satisfied? Return any unworn piece within 30 days for a full refund — no questions asked. |
 
