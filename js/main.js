@@ -78,15 +78,85 @@ if (navToggle && navLinks) {
   });
 }
 
-/* ── Sticky nav background on scroll ── */
+/* ── Sticky nav — always light (parchment) ── */
 const navbar = document.querySelector('.navbar');
-
 window.addEventListener('scroll', () => {
-  if (window.scrollY > 60) {
-    navbar.style.background = 'rgba(12, 10, 7, 1)';
-  } else {
-    navbar.style.background = 'rgba(12, 10, 7, 0.97)';
+  if (!navbar) return;
+  navbar.style.background = window.scrollY > 60
+    ? 'rgba(255,252,248,1)'
+    : 'rgba(255,252,248,0.97)';
+});
+
+/* ── Page Tabs ── */
+function activateTab(tabId) {
+  document.querySelectorAll('.page-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === tabId));
+  document.querySelectorAll('.tab-section').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + tabId));
+  history.replaceState(null, '', '#' + tabId);
+  const panel = document.getElementById('tab-' + tabId);
+  if (panel) {
+    panel.querySelectorAll('.pieces-grid').forEach(g => initCarousels(g));
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.page-tab').forEach(btn =>
+    btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
+
+  document.querySelectorAll('[data-tab-target]').forEach(link =>
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      activateTab(link.dataset.tabTarget);
+      document.getElementById('page-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }));
+
+  const hash = location.hash.replace('#', '');
+  if (['shop','craftsmanship','about'].includes(hash)) activateTab(hash);
+});
+
+/* ── Lightbox ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const lb = document.getElementById('lightbox');
+  if (!lb) return;
+  const lbImg  = lb.querySelector('.lightbox-img');
+  const lbPrev = lb.querySelector('.lightbox-prev');
+  const lbNext = lb.querySelector('.lightbox-next');
+  let imgs = [], idx = 0;
+
+  function show(i) {
+    idx = (i + imgs.length) % imgs.length;
+    lbImg.src = imgs[idx];
+  }
+  function open(sources, i) {
+    imgs = sources; show(i);
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function close() {
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.carousel-slide img, .piece-img > img');
+    if (!img) return;
+    const track = img.closest('.carousel-track, .piece-img');
+    const all = [...(track?.querySelectorAll('img') || [img])].map(i => i.src);
+    const ci  = all.indexOf(img.src);
+    open(all, ci < 0 ? 0 : ci);
+  });
+
+  lb.addEventListener('click', e => { if (e.target === lb) close(); });
+  lb.querySelector('.lightbox-close')?.addEventListener('click', close);
+  lbPrev?.addEventListener('click', () => show(idx - 1));
+  lbNext?.addEventListener('click', () => show(idx + 1));
+  document.addEventListener('keydown', e => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape')     close();
+    if (e.key === 'ArrowLeft')  show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  });
 });
 
 /* ── Smooth reveal on scroll ── */

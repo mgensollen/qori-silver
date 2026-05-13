@@ -26,7 +26,7 @@
     <div class="sec-label" style="color:var(--teal-lt)">Admin</div>
     <h1 style="font-size:clamp(2rem,4vw,3rem)">Inventory</h1>
     <p class="hero-desc" style="max-width:760px">
-      Update available quantity per product. Inventory is reduced automatically when a paid checkout is captured.
+      Edit display names stored in the catalog and available quantity per product. Inventory is reduced automatically when a paid checkout is captured (by line-item quantity).
     </p>
   </section>
 
@@ -34,10 +34,11 @@
     <div class="story-inner">
       <div id="inv-status" class="piece-mat" style="margin-bottom:1rem">Loading inventory...</div>
       <div style="overflow:auto;border:1px solid rgba(201,168,76,0.2)">
-        <table style="width:100%;border-collapse:collapse;min-width:720px">
+        <table style="width:100%;border-collapse:collapse;min-width:920px">
           <thead>
             <tr style="background:rgba(12,10,7,0.45)">
               <th style="text-align:left;padding:0.8rem;border-bottom:1px solid rgba(201,168,76,0.2)">Product</th>
+              <th style="text-align:left;padding:0.8rem;border-bottom:1px solid rgba(201,168,76,0.2)">Display name (<code style="color:var(--cream3)">item_name</code>)</th>
               <th style="text-align:left;padding:0.8rem;border-bottom:1px solid rgba(201,168,76,0.2)">Price</th>
               <th style="text-align:left;padding:0.8rem;border-bottom:1px solid rgba(201,168,76,0.2)">Inventory</th>
             </tr>
@@ -46,13 +47,13 @@
         </table>
       </div>
       <div class="cta-row" style="margin-top:1.2rem">
-        <button id="inv-save" class="btn-primary" type="button">Save inventory</button>
+        <button id="inv-save" class="btn-primary" type="button">Save names &amp; inventory</button>
         <button id="inv-refresh" class="btn-ghost" type="button">Refresh</button>
       </div>
     </div>
   </section>
 
   <script src="js/config.js?v=20260508-4"></script>
-  <script src="js/inventory-admin.js?v=20260511-1"></script>
+  <script src="js/inventory-admin.js?v=20260511-2"></script>
 </body>
 </html>

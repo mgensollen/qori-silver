@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260512-5">
+  <link rel="stylesheet" href="css/style.css?v=20260513-1">
 </head>
 <body>
 
@@ -29,9 +29,9 @@
   <nav class="navbar">
     <a href="index.html" class="logo"><img src="favicon.svg" alt="" class="logo-mark" width="30" height="30">QORI <span>SILVER</span></a>
     <ul class="nav-links">
-      <li><a href="shop.html">Shop</a></li>
-      <li><a href="#craftsmanship">Craftsmanship</a></li>
-      <li><a href="#about">About</a></li>
+      <li><a href="#" data-tab-target="shop">Shop</a></li>
+      <li><a href="#" data-tab-target="craftsmanship">Craftsmanship</a></li>
+      <li><a href="#" data-tab-target="about">About</a></li>
     </ul>
     <a href="#" class="nav-cart" data-cart-open>Cart (0)</a>
     <button class="nav-toggle" aria-label="Open menu">&#9776;</button>
@@ -60,7 +60,7 @@
         Each piece carries the memory of a civilization that shaped silver into myth.
       </p>
       <div class="cta-row">
-        <a href="shop.html" class="btn-primary">Explore Collection →</a>
+        <a href="#" class="btn-primary" data-tab-target="shop">Explore Collection →</a>
         <a href="#about" class="btn-ghost">Our Story →</a>
       </div>
     </div>
@@ -119,14 +119,21 @@
     <div class="ticker-seg"><div class="tick-dot" style="background:var(--gold)"></div><span class="tick-label" style="color:var(--cream)">Free Worldwide Shipping</span></div>
   </div>
 
-  <!-- ── FEATURED PIECES ── -->
-  <section class="pieces" id="craftsmanship">
+  <!-- ── PAGE TABS ── -->
+  <div class="page-tabs" id="page-tabs">
+    <button class="page-tab active" data-tab="shop">Shop</button>
+    <button class="page-tab" data-tab="craftsmanship">Craftsmanship</button>
+    <button class="page-tab" data-tab="about">About</button>
+  </div>
+
+  <!-- ═══ TAB 1: SHOP ═══ -->
+  <div class="tab-section active" id="tab-shop">
+  <section class="pieces">
     <div class="pieces-header">
       <div>
-        <div class="sec-label" style="color:var(--teal-lt)">New Arrivals</div>
-        <h2 class="sec-title">Signature <em style="color:var(--gold-lt)">Pieces</em></h2>
+        <div class="sec-label">Our Collection</div>
+        <h2 class="sec-title">All <em>Pieces</em></h2>
       </div>
-      <a href="shop.html" class="view-all">View All →</a>
     </div>
 
     <div class="pieces-grid">
@@ -200,10 +207,10 @@
           </div>
         </div>
         <div class="piece-cat" style="color:var(--teal-lt)">Chains</div>
-        <div class="piece-name">Killa Curb Necklace &amp; Bracelet</div>
+        <div class="piece-name">Killa Curb Necklace</div>
         <div class="piece-price">$146.00</div>
         <div class="piece-mat">Weight: 9.34g · Length: 21"</div>
-        <button class="piece-add" type="button" data-add-to-cart data-product-id="product-3" data-product-name="Killa Curb Necklace &amp; Bracelet" data-product-price="146.00">Add to cart</button>
+        <button class="piece-add" type="button" data-add-to-cart data-product-id="product-3" data-product-name="Killa Curb Necklace" data-product-price="146.00">Add to cart</button>
       </div>
 
       <!-- Product 4: Qori Figaro Necklace &amp; Bracelet -->
@@ -225,10 +232,10 @@
           </div>
         </div>
         <div class="piece-cat" style="color:var(--teal-lt)">Chains</div>
-        <div class="piece-name">Qori Figaro Necklace &amp; Bracelet</div>
+        <div class="piece-name">Qori Figaro Necklace</div>
         <div class="piece-price">$246.00</div>
         <div class="piece-mat">Weight: 16.44g · Length: 24"</div>
-        <button class="piece-add" type="button" data-add-to-cart data-product-id="product-4" data-product-name="Qori Figaro Necklace &amp; Bracelet" data-product-price="246.00">Add to cart</button>
+        <button class="piece-add" type="button" data-add-to-cart data-product-id="product-4" data-product-name="Qori Figaro Necklace" data-product-price="246.00">Add to cart</button>
       </div>
 
       <!-- Product 5: Pachamama Clover Necklace -->
@@ -254,7 +261,7 @@
         <div class="piece-cat" style="color:var(--gold-lt)">Chains</div>
         <div class="piece-name">Pachamama Clover Necklace</div>
         <div class="piece-price">$133.00</div>
-        <div class="piece-mat">Weight: 8.57g · Length: 18"</div>
+        <div class="piece-mat">Pendant: Sterling silver .95 · Length: 18"</div>
         <button class="piece-add" type="button" data-add-to-cart data-product-id="product-5" data-product-name="Pachamama Clover Necklace" data-product-price="133.00">Add to cart</button>
       </div>
 
@@ -279,7 +286,7 @@
         <div class="piece-cat" style="color:var(--cobalt-lt)">Earrings</div>
         <div class="piece-name">Inti Solar Disc Set</div>
         <div class="piece-price">$52.00</div>
-        <div class="piece-mat">Sterling silver .95</div>
+        <div class="piece-mat">Pendant: Sterling silver .95</div>
         <button class="piece-add" type="button" data-add-to-cart data-product-id="product-6" data-product-name="Inti Solar Disc Set" data-product-price="52.00">Add to cart</button>
       </div>
 
@@ -304,12 +311,83 @@
         <div class="piece-cat" style="color:var(--cobalt-lt)">Earrings</div>
         <div class="piece-name">Chakana Cross Set</div>
         <div class="piece-price">$141.00</div>
-        <div class="piece-mat">Sterling silver .95</div>
+        <div class="piece-mat">Pendant: Sterling silver .95</div>
         <button class="piece-add" type="button" data-add-to-cart data-product-id="product-7" data-product-name="Chakana Cross Set" data-product-price="141.00">Add to cart</button>
       </div>
 
     </div>
   </section>
+  </div><!-- /tab-shop -->
+
+  <!-- ═══ TAB 2: CRAFTSMANSHIP ═══ -->
+  <div class="tab-section" id="tab-craftsmanship">
+  <section class="story">
+    <div class="story-inner">
+      <div>
+        <div class="sec-label">The Craft</div>
+        <h2 class="sec-title">Made <em>by Hand</em></h2>
+      </div>
+      <div class="story-grid">
+        <div class="story-card">
+          <h3>Materials</h3>
+          <p>
+            We work in sterling .95 and pair it with stones that echo the Andes — turquoise, chrysocolla, sodalite, and amethyst.
+            Each piece is finished by hand, hallmarked, and made to be worn daily, not hidden away.
+          </p>
+        </div>
+        <div class="story-card">
+          <h3>How We Make It</h3>
+          <p>
+            A design starts with geometry, then becomes wax, then silver. The final polish is slow by intention:
+            crisp edges, soft highlights, and surfaces that catch light like high-altitude sun.
+          </p>
+        </div>
+        <div class="story-card">
+          <h3>Hallmarked &amp; Certified</h3>
+          <p>
+            Every piece leaves our workshop with a .95 hallmark and a certificate of authenticity.
+            We stand behind our materials — if something isn't right, we fix it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div><!-- /tab-craftsmanship -->
+
+  <!-- ═══ TAB 3: ABOUT ═══ -->
+  <div class="tab-section" id="tab-about">
+  <section class="story" id="about">
+    <div class="story-inner">
+      <div>
+        <div class="sec-label">Our Story</div>
+        <h2 class="sec-title">From Cusco to the world, <em>in sterling</em></h2>
+      </div>
+      <div class="story-grid">
+        <div class="story-card">
+          <h3>Origins</h3>
+          <p>
+            Qori Silver began as a family workshop outside Cusco, where our artisans learned to read symbols the way others read maps:
+            the Chakana for balance, Inti for light, Amaru for transformation. We carry those meanings forward — not as replicas, but as living design.
+          </p>
+        </div>
+        <div class="story-card">
+          <h3>Sustainability</h3>
+          <p>
+            We source ethically and work directly with Andean artisan communities. Every purchase supports the continuation of techniques
+            passed down through generations. Silver is chosen for its longevity — a piece made well lasts a lifetime.
+          </p>
+        </div>
+        <div class="story-card">
+          <h3>Our Artisans</h3>
+          <p>
+            Each piece is handcrafted by skilled silversmiths in Cusco, Peru. Their expertise in ancient Andean symbology and
+            contemporary design is what makes Qori Silver unique — not a factory product, but a personal creation.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div><!-- /tab-about -->
 
   <!-- ── CART DRAWER (MVP) ── -->
   <div class="cart-overlay" data-cart-overlay></div>
@@ -376,20 +454,20 @@
     <div class="ft-col">
       <h4>Collections</h4>
       <ul>
-        <li><a href="shop.html">Inti — Solar</a></li>
-        <li><a href="shop.html">Chakana — Cross</a></li>
-        <li><a href="shop.html">Killa — Moon</a></li>
-        <li><a href="shop.html">Amaru — Serpent</a></li>
-        <li><a href="shop.html">Pachamama</a></li>
+        <li><a href="#" data-tab-target="shop">Inti — Solar</a></li>
+        <li><a href="#" data-tab-target="shop">Chakana — Cross</a></li>
+        <li><a href="#" data-tab-target="shop">Killa — Moon</a></li>
+        <li><a href="#" data-tab-target="shop">Amaru — Serpent</a></li>
+        <li><a href="#" data-tab-target="shop">Pachamama</a></li>
       </ul>
     </div>
     <div class="ft-col">
       <h4>About</h4>
       <ul>
-        <li><a href="#about">Our Heritage</a></li>
-        <li><a href="#craftsmanship">Craftsmanship</a></li>
-        <li><a href="#about">Sustainability</a></li>
-        <li><a href="#about">Artisans</a></li>
+        <li><a href="#" data-tab-target="about">Our Heritage</a></li>
+        <li><a href="#" data-tab-target="craftsmanship">Craftsmanship</a></li>
+        <li><a href="#" data-tab-target="about">Sustainability</a></li>
+        <li><a href="#" data-tab-target="about">Artisans</a></li>
       </ul>
     </div>
     <div class="ft-col">
@@ -397,9 +475,8 @@
       <ul>
         <li><a href="shipping.html">Shipping &amp; Returns</a></li>
         <li><a href="care.html">Care Guide</a></li>
-
-        <li><a href="mailto:marcosgensollen@hotmail.com?subject=Custom Order Inquiry">Custom Orders</a></li>
-        <li><a href="mailto:marcosgensollen@hotmail.com">Contact Us</a></li>
+        <li><a href="mailto:contact@qorisilver.com?subject=Custom Order Inquiry">Custom Orders</a></li>
+        <li><a href="mailto:contact@qorisilver.com">Contact Us</a></li>
       </ul>
     </div>
     <div class="ft-bottom">
@@ -408,12 +485,22 @@
     </div>
   </footer>
 
+  <!-- ── LIGHTBOX ── -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <div class="lightbox-inner">
+      <button class="lightbox-close" aria-label="Close">×</button>
+      <button class="lightbox-prev" aria-label="Previous">&#8249;</button>
+      <img class="lightbox-img" src="" alt="Product photo">
+      <button class="lightbox-next" aria-label="Next">&#8250;</button>
+    </div>
+  </div>
+
   <script src="js/config.js?v=20260508-4"></script>
-  <script src="js/main.js?v=20260511-2"></script>
+  <script src="js/main.js?v=20260513-1"></script>
   <script src="js/products.js?v=20260508-4"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      initCarousels(document.querySelector('.pieces-grid'));
+      document.querySelectorAll('.pieces-grid').forEach(g => initCarousels(g));
     });
   </script>
   <script type="application/ld+json">
@@ -426,7 +513,7 @@
         "name": "Qori Silver",
         "url": "https://www.qorisilver.com/",
         "description": "Handcrafted Peruvian sterling silver jewelry inspired by ancient Andean and Inca designs.",
-        "email": "marcosgensollen@hotmail.com",
+        "email": "contact@qorisilver.com",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "PE",
