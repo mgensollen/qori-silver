@@ -214,6 +214,8 @@ const cartSubtotalEl = document.querySelector('[data-cart-subtotal]');
 const cartCountEl = document.querySelector('[data-cart-count]');
 let stripeMode = '';
 const inventoryById = new Map();
+/** After first successful GET /api/products for inventory; avoids false "sold out" before data arrives. */
+let inventoryFromApiReady = false;
 
 function ensureStripeModeBadge() {
   const cartFoot = document.querySelector('.cart-foot');
@@ -268,7 +270,7 @@ async function loadStripeMode() {
 }
 
 function getServerInventory(productId) {
-  if (!inventoryById.has(productId)) return Number.POSITIVE_INFINITY;
+  if (!inventoryFromApiReady || !inventoryById.has(productId)) return Number.POSITIVE_INFINITY;
   return Number(inventoryById.get(productId)) || 0;
 }
 
@@ -335,7 +337,7 @@ function applyInventoryToButtons() {
 
 /** Clamp cart quantities to server stock after inventory loads (fixes stale localStorage). */
 function reconcileCartWithInventory() {
-  if (inventoryById.size === 0) return;
+  if (!inventoryFromApiReady || inventoryById.size === 0) return;
   const next = [];
   for (const it of cart.items) {
     const cap = inventoryById.has(it.id)
@@ -357,9 +359,9 @@ async function loadInventory() {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
   try {
     const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const products = await res.json();
-    if (!Array.isArray(products)) return;
+    if (!Array.isArray(products)) throw new Error('Invalid products payload');
     const next = new Map();
     for (const p of products) {
       if (!p || typeof p.id !== 'string') continue;
@@ -377,10 +379,12 @@ async function loadInventory() {
     }
     inventoryById.clear();
     for (const [k, v] of next) inventoryById.set(k, v);
+    inventoryFromApiReady = true;
     reconcileCartWithInventory();
     applyInventoryToButtons();
   } catch (err) {
     console.warn('Inventory load failed:', err);
+    inventoryFromApiReady = false;
   }
 }
 

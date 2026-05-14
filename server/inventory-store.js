@@ -65,12 +65,14 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
         if (!row?.site_product_id) continue;
         const id = String(row.site_product_id).trim();
         if (!id) continue;
-        // NULL / missing inventory must not become 0 (that reads as sold out). Let merge use sheet row / defaults.
+        // NULL / missing inventory: omit key so merge uses sheet row / defaults (never legacy zeros).
         if (row.inventory === null || row.inventory === undefined || row.inventory === '') continue;
         const q = Number(row.inventory);
         if (Number.isFinite(q) && q >= 0) out[id] = Math.floor(q);
       }
-      if (Object.keys(out).length > 0) return out;
+      // catalog_sheet is authoritative whenever it returned rows — even if `out` is empty
+      // (e.g. NULL inventory cells). Do not fall through to product_inventory in that case.
+      return out;
     }
   } catch (e) {
     console.warn('inventory-store: catalog_sheet read failed:', e?.message);
