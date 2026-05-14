@@ -4,12 +4,14 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "seed-inventory": "node server/seed-product-inventory.mjs"
+    "seed-inventory": "node server/seed-product-inventory.mjs",
+    "sync-catalog": "node server/sync-catalog.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "googleapis": "^144.0.0",
     "stripe": "^17.7.0"
   }
 }
