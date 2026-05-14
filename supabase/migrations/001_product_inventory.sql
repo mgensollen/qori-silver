@@ -1,3 +1,5 @@
+-- Legacy one-column inventory table (superseded by 002_catalog_sheet.sql).
+-- New setups: run only supabase/migrations/002_catalog_sheet.sql
 -- Run in Supabase → SQL Editor (or supabase db push).
 -- Table used by the Node server when SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set.
 
