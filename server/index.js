@@ -19,6 +19,7 @@ import {
 } from './inventory-merge.js';
 import { bootstrapCatalogFromCsv, countCatalogRows, fetchProductsFromCatalogSheet, updateCatalogItemNames } from './catalog-sheet-db.js';
 import { runCatalogSync } from './catalog-sync.js';
+import { productSlugForSiteId } from './product-urls.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -587,8 +588,10 @@ app.get('/api/products', async (req, res) => {
     const { products, inventory } = await getProductsWithInventory();
     return res.json(products.map((p) => {
       const { sheetStock, item_name, ...rest } = p;
+      const slug = productSlugForSiteId(p.id);
       return {
         ...rest,
+        slug,
         inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
       };
     }));
@@ -599,8 +602,10 @@ app.get('/api/products', async (req, res) => {
       const inventory = mapInventoryForProducts(_productsCache, current);
       return res.json(_productsCache.map((p) => {
         const { sheetStock, item_name, ...rest } = p;
+        const slug = productSlugForSiteId(p.id);
         return {
           ...rest,
+          slug,
           inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
         };
       }));

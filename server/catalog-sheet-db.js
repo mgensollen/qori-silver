@@ -1,6 +1,10 @@
 import { getSupabaseClient, inventoryUsesSupabase } from './inventory-store.js';
+import { parseStoredInventory } from './inventory-merge.js';
 import { parseCatalogSheetUpsertRows, parseImages, parseSheetPrice, sheetCsvUrl } from './sheet-products.js';
 import { websiteItemNameForProductId } from './item-names.js';
+
+/** @deprecated use parseStoredInventory from inventory-merge */
+export const parseCatalogInventoryCell = parseStoredInventory;
 
 export async function countCatalogRows() {
   if (!inventoryUsesSupabase()) return 0;
@@ -21,6 +25,8 @@ function catalogRowsToProducts(rows) {
   const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
   return rows.map((row) => {
+    const siteId = String(row.site_product_id ?? '').trim();
+    if (!siteId) return null;
     const type = row.type || '';
     seen[type] = (seen[type] || 0) + 1;
     const nth = seen[type];
@@ -36,7 +42,7 @@ function catalogRowsToProducts(rows) {
       : '';
     const name =
       nameFromDb
-      || websiteItemNameForProductId(row.site_product_id)
+      || websiteItemNameForProductId(siteId)
       || generatedName;
 
     const category = type.startsWith('Earring') ? 'Earrings' : 'Chains';
@@ -50,11 +56,11 @@ function catalogRowsToProducts(rows) {
       || parseSheetPrice(row.total_price_paid_usd)
       || 0;
 
-    const inv = Number(row.inventory);
-    const sheetStock = Number.isFinite(inv) ? Math.max(0, Math.floor(inv)) : null;
+    // NULL / blank must stay unknown — Number(null) is 0 and would false "sold out" sitewide.
+    const sheetStock = parseStoredInventory(row.inventory);
 
     const product = {
-      id: row.site_product_id,
+      id: siteId,
       name,
       item_name: row.item_name != null && String(row.item_name).trim() ? String(row.item_name).trim() : null,
       category,
@@ -75,7 +81,7 @@ export async function fetchProductsFromCatalogSheet() {
     .select('*')
     .order('row_number', { ascending: true });
   if (error) throw new Error(`Supabase catalog_sheet read: ${error.message}`);
-  return catalogRowsToProducts(data || []);
+  return catalogRowsToProducts(data || []).filter(Boolean);
 }
 
 /**

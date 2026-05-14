@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { parseStoredInventory } from './inventory-merge.js';
 
 let _client;
 
@@ -65,10 +66,9 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
         if (!row?.site_product_id) continue;
         const id = String(row.site_product_id).trim();
         if (!id) continue;
-        // NULL / missing inventory: omit key so merge uses sheet row / defaults (never legacy zeros).
-        if (row.inventory === null || row.inventory === undefined || row.inventory === '') continue;
-        const q = Number(row.inventory);
-        if (Number.isFinite(q) && q >= 0) out[id] = Math.floor(q);
+        const parsed = parseStoredInventory(row.inventory);
+        if (parsed === null) continue;
+        out[id] = parsed;
       }
       // catalog_sheet is authoritative whenever it returned rows — even if `out` is empty
       // (e.g. NULL inventory cells). Do not fall through to product_inventory in that case.
@@ -89,9 +89,9 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
         if (!row?.id) continue;
         const id = String(row.id).trim();
         if (!id) continue;
-        if (row.quantity === null || row.quantity === undefined || row.quantity === '') continue;
-        const q = Number(row.quantity);
-        if (Number.isFinite(q) && q >= 0) out[id] = Math.floor(q);
+        const parsed = parseStoredInventory(row.quantity);
+        if (parsed === null) continue;
+        out[id] = parsed;
       }
       if (Object.keys(out).length > 0) {
         console.log(`inventory-store: read ${Object.keys(out).length} rows from product_inventory (legacy)`);

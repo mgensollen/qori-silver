@@ -216,6 +216,8 @@ let stripeMode = '';
 const inventoryById = new Map();
 /** After first successful GET /api/products for inventory; avoids false "sold out" before data arrives. */
 let inventoryFromApiReady = false;
+/** True after /api/products fetch throws or non-OK (buttons stay disabled). */
+let inventoryLoadFailed = false;
 
 function ensureStripeModeBadge() {
   const cartFoot = document.querySelector('.cart-foot');
@@ -270,20 +272,29 @@ async function loadStripeMode() {
 }
 
 function getServerInventory(productId) {
-  if (!inventoryFromApiReady || !inventoryById.has(productId)) return Number.POSITIVE_INFINITY;
-  return Number(inventoryById.get(productId)) || 0;
+  if (!inventoryFromApiReady) return null;
+  if (!inventoryById.has(productId)) return 0;
+  const raw = inventoryById.get(productId);
+  if (raw === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
 }
 
-/** Units left to sell after what is already in the cart (server truth minus this browser’s cart). */
+/** Units left to sell after what is already in the cart (server truth minus this browser's cart). */
 function getAvailableInventory(productId) {
   const server = getServerInventory(productId);
-  if (server === Number.POSITIVE_INFINITY) return server;
+  if (server === null) return null;
+  if (server === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
   const inCart = cart.items.find((i) => i.id === productId)?.qty || 0;
   return Math.max(0, server - inCart);
 }
 
 function canAddQty(productId, nextQty) {
-  return nextQty <= getAvailableInventory(productId);
+  const avail = getAvailableInventory(productId);
+  if (avail === null) return false;
+  if (avail === Number.POSITIVE_INFINITY) return true;
+  return nextQty <= avail;
 }
 
 function applyInventoryToButtons() {
@@ -294,10 +305,25 @@ function applyInventoryToButtons() {
     const serverInv = getServerInventory(id);
     const remaining = getAvailableInventory(id);
     const inCart = cart.items.find((i) => i.id === id)?.qty || 0;
-    const trulyGone = serverInv !== Number.POSITIVE_INFINITY && serverInv <= 0;
-    const cannotAddMore = remaining <= 0;
+
+    if (serverInv === null) {
+      const card = el.closest('.piece, .shop-card, .product-detail');
+      if (card) card.classList.remove('is-soldout');
+      const parent = el.parentElement;
+      if (parent) {
+        const msg = parent.querySelector(`[data-soldout-for="${id}"]`);
+        if (msg) msg.hidden = true;
+      }
+      el.disabled = true;
+      el.textContent = inventoryLoadFailed ? 'Unavailable' : 'Loading…';
+      el.removeAttribute('aria-describedby');
+      return;
+    }
+
+    const trulyGone = serverInv <= 0;
+    const cannotAddMore = remaining !== null && remaining <= 0;
     const atCartCap = !trulyGone && cannotAddMore && inCart > 0;
-    const card = el.closest('.piece, .shop-card');
+    const card = el.closest('.piece, .shop-card, .product-detail');
     const soldOutId = `soldout-${id}`;
     const parent = el.parentElement;
 
@@ -340,10 +366,14 @@ function reconcileCartWithInventory() {
   if (!inventoryFromApiReady || inventoryById.size === 0) return;
   const next = [];
   for (const it of cart.items) {
-    const cap = inventoryById.has(it.id)
-      ? Math.max(0, Number(inventoryById.get(it.id)) || 0)
-      : Number.POSITIVE_INFINITY;
-    const q = cap === Number.POSITIVE_INFINITY ? it.qty : Math.min(it.qty, cap);
+    if (!inventoryById.has(it.id)) continue;
+    const capRaw = inventoryById.get(it.id);
+    if (capRaw === Number.POSITIVE_INFINITY) {
+      next.push(it);
+      continue;
+    }
+    const cap = Math.max(0, Number.isFinite(Number(capRaw)) ? Math.floor(Number(capRaw)) : 0);
+    const q = Math.min(it.qty, cap);
     if (q > 0) next.push({ ...it, qty: q });
   }
   const same =
@@ -357,6 +387,7 @@ function reconcileCartWithInventory() {
 
 async function loadInventory() {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+  inventoryLoadFailed = false;
   try {
     const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -385,6 +416,9 @@ async function loadInventory() {
   } catch (err) {
     console.warn('Inventory load failed:', err);
     inventoryFromApiReady = false;
+    inventoryLoadFailed = true;
+    inventoryById.clear();
+    applyInventoryToButtons();
   }
 }
 
@@ -556,24 +590,33 @@ document.querySelectorAll('[data-cart-close]').forEach(el => {
 
 cartOverlay?.addEventListener('click', closeCart);
 
-document.querySelectorAll('[data-add-to-cart]').forEach(el => {
-  el.addEventListener('click', (e) => {
-    e.preventDefault();
-    const id = (el.getAttribute('data-product-id') ?? 'test-item').trim();
-    const name = el.getAttribute('data-product-name') ?? 'Test Item';
-    const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
-    const previousQty = cart.items.find(i => i.id === id)?.qty || 0;
+document.addEventListener('click', (e) => {
+  const el = e.target instanceof Element ? e.target.closest('[data-add-to-cart]') : null;
+  if (!el || !(el instanceof HTMLButtonElement)) return;
+  e.preventDefault();
+  if (!inventoryFromApiReady) {
+    alert(inventoryLoadFailed ? 'Could not load stock. Please refresh the page.' : 'Still loading availability — try again in a moment.');
+    return;
+  }
+  const id = (el.getAttribute('data-product-id') ?? 'test-item').trim();
+  const name = el.getAttribute('data-product-name') ?? 'Test Item';
+  const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
+  const previousQty = cart.items.find(i => i.id === id)?.qty || 0;
 
-    cart = addItem(cart, { id, name, price });
-    writeCart(cart);
-    renderCart(cart);
-    const nextQty = cart.items.find(i => i.id === id)?.qty || 0;
-    if (nextQty > previousQty) {
-      openCart();
-    } else {
-      alert('This item is out of stock.');
-    }
-  });
+  if (!canAddQty(id, previousQty + 1)) {
+    alert(getServerInventory(id) === 0 ? 'This item is sold out.' : 'This item is out of stock.');
+    return;
+  }
+
+  cart = addItem(cart, { id, name, price });
+  writeCart(cart);
+  renderCart(cart);
+  const nextQty = cart.items.find(i => i.id === id)?.qty || 0;
+  if (nextQty > previousQty) {
+    openCart();
+  } else {
+    alert('This item is out of stock.');
+  }
 });
 
 cartItemsEl?.addEventListener('click', (e) => {
