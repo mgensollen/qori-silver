@@ -266,6 +266,13 @@ a { text-decoration: none; }
   padding: 0.35rem 0.65rem;
 }
 
+/* Groups hamburger (top) + cart (bottom) on mobile */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* ═══════════════════════════════════════════════════
    HERO
    ═══════════════════════════════════════════════════ */
@@ -771,17 +778,29 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 
 .cart-drawer {
   position: fixed; top: 0; right: 0;
-  height: 100vh; width: min(420px, 92vw);
+  height: 100dvh; width: min(420px, 92vw);
   background: var(--surface);
   border-left: 1px solid var(--gold-line2);
   transform: translateX(100%);
   transition: transform 0.3s ease;
-  z-index: 190;
+  z-index: 200;          /* above navbar (100), tabs (90), everything */
   display: grid;
   grid-template-rows: auto 1fr auto;
-  box-shadow: -4px 0 40px rgba(28,18,8,0.12);
+  box-shadow: -4px 0 40px rgba(28,18,8,0.18);
+  overflow: hidden;      /* nothing bleeds outside the drawer */
 }
 .cart-drawer.open { transform: translateX(0); }
+
+/* Overlay must cover the entire viewport including the sticky navbar */
+.cart-overlay {
+  position: fixed; inset: 0;
+  background: rgba(28,18,8,0.45);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 199;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
 
 .cart-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -1070,9 +1089,27 @@ footer {
   }
   .nav-toggle { display: flex; align-items: center; justify-content: center; }
 
-  /* ── Cart fix: logo left, cart+toggle grouped right ── */
-  .navbar { justify-content: flex-start; padding: 1rem 1.2rem; }
-  .nav-cart { margin-left: auto; margin-right: 0.6rem; }
+  /* ── Navbar mobile: logo left, nav-right stacked on right ── */
+  .navbar { justify-content: flex-start; padding: 0.75rem 1rem; }
+  .nav-right {
+    margin-left: auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+  }
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    padding: 0.2rem 0.45rem;
+  }
+  .nav-cart {
+    font-size: 0.52rem;
+    padding: 0.22rem 0.6rem;
+    letter-spacing: 0.1em;
+    transform: none !important; /* no lift on mobile — stays in navbar */
+  }
 
   /* ── Hero: static Machu Picchu image replaces video ── */
   .hero-video { display: none; }
