@@ -1,14 +1,15 @@
-import 'dotenv/config';
 import express from 'express';
 import Stripe from 'stripe';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import dotenv from 'dotenv';
 import {
   inventoryUsesSupabase,
   inventoryStateEquals,
   readInventoryMap,
   writeInventoryMap,
+  decrementInventoryItem,
 } from './inventory-store.js';
 import { parseProducts, sheetCsvUrl } from './sheet-products.js';
 import {
@@ -16,6 +17,14 @@ import {
   normalizeInventoryValue,
   mapInventoryForProducts,
 } from './inventory-merge.js';
+import { bootstrapCatalogFromCsv, countCatalogRows, fetchProductsFromCatalogSheet, updateCatalogItemNames } from './catalog-sheet-db.js';
+import { runCatalogSync } from './catalog-sync.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..');
+dotenv.config({ path: path.join(repoRoot, '.env') });
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 
 const app = express();
 // Render/NGINX style deployments sit behind a proxy. Trust it so `req.protocol`
@@ -102,8 +111,6 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 });
 
 app.use(express.json({ limit: '64kb' }));
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, '..');
 app.use(express.static(webRoot));
 
@@ -428,9 +435,29 @@ app.post('/api/create-checkout-session', async (req, res) => {
 let _productsCache = null;
 let _productsCacheAt = 0;
 
+function invalidateProductCache() {
+  _productsCache = null;
+  _productsCacheAt = 0;
+}
+
 async function fetchProducts() {
   if (_productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
     return _productsCache;
+  }
+  if (inventoryUsesSupabase()) {
+    try {
+      const fromDb = await fetchProductsFromCatalogSheet();
+      if (fromDb.length > 0) {
+        _productsCache = fromDb;
+        _productsCacheAt = Date.now();
+        return fromDb;
+      }
+    } catch (err) {
+      console.warn('Supabase catalog_sheet read failed, using Google Sheet:', err?.message);
+    }
+    const response = await fetch(sheetCsvUrl());
+    if (!response.ok) throw new Error(`Sheet fetch ${response.status}`);
+    return parseProducts(await response.text());
   }
   const response = await fetch(sheetCsvUrl());
   if (!response.ok) throw new Error(`Sheet fetch ${response.status}`);
@@ -441,9 +468,29 @@ async function fetchProducts() {
 }
 
 async function getProductsWithInventory() {
-  const products = await fetchProducts();
-  const current = await readInventoryMap(inventoryFile, readJsonFile);
-  const inventory = mapInventoryForProducts(products, current);
+  let products = await fetchProducts();
+  let current = await readInventoryMap(inventoryFile, readJsonFile);
+  let inventory = mapInventoryForProducts(products, current);
+
+  if (inventoryUsesSupabase()) {
+    try {
+      if ((await countCatalogRows()) === 0 && products.length > 0) {
+        await bootstrapCatalogFromCsv(inventory);
+        _productsCache = null;
+        _productsCacheAt = 0;
+        products = await fetchProducts();
+        current = await readInventoryMap(inventoryFile, readJsonFile);
+        inventory = mapInventoryForProducts(products, current);
+      }
+    } catch (err) {
+      console.warn('catalog_sheet bootstrap:', err?.message);
+    }
+    if (!inventoryStateEquals(current, inventory)) {
+      await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
+    }
+    return { products, inventory };
+  }
+
   if (!inventoryStateEquals(current, inventory)) {
     await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
   }
@@ -494,24 +541,43 @@ async function decrementInventoryFromSession(session) {
   if (!shouldProcess) return { updated: false, reason: 'already_processed' };
 
   const { products } = await getProductsWithInventory();
-  const current = await readInventoryMap(inventoryFile, readJsonFile);
-  const inventory = mapInventoryForProducts(products, current);
   const catalogIds = new Set(products.map((p) => p.id));
 
-  for (const id of purchasedIds) {
-    if (!catalogIds.has(id)) {
-      console.warn(`Inventory decrement skipped unknown line-item id (not in catalog): ${id}`);
-      continue;
+  if (inventoryUsesSupabase()) {
+    // ── Atomic path: one SQL UPDATE per line-item, floors at 0 ──────────
+    let anyAtomic = false;
+    for (const id of purchasedIds) {
+      if (!catalogIds.has(id)) {
+        console.warn(`Decrement skipped unknown id: ${id}`);
+        continue;
+      }
+      const result = await decrementInventoryItem(id, purchased[id]);
+      if (result !== null) {
+        console.log(`Decremented ${id} by ${purchased[id]}, new qty: ${result}`);
+        anyAtomic = true;
+      }
     }
+    if (anyAtomic) {
+      invalidateProductCache();
+      return { updated: true };
+    }
+    // RPC not yet deployed — fall through to JS read-modify-write below
+  }
+
+  // ── JS read-modify-write (fallback / non-Supabase) ───────────────────
+  const current = await readInventoryMap(inventoryFile, readJsonFile);
+  const inventory = mapInventoryForProducts(products, current);
+
+  for (const id of purchasedIds) {
+    if (!catalogIds.has(id)) continue;
     const next = normalizeInventoryValue(inventory[id], INVENTORY_DEFAULT_QTY) - purchased[id];
     inventory[id] = Math.max(0, next);
   }
 
   const inventoryOut = {};
-  for (const p of products) {
-    inventoryOut[p.id] = inventory[p.id];
-  }
+  for (const p of products) inventoryOut[p.id] = inventory[p.id];
   await writeInventoryMap(inventoryFile, inventoryOut, writeJsonFile);
+  invalidateProductCache();
   return { updated: true };
 }
 
@@ -519,7 +585,7 @@ app.get('/api/products', async (req, res) => {
   try {
     const { products, inventory } = await getProductsWithInventory();
     return res.json(products.map((p) => {
-      const { sheetStock, ...rest } = p;
+      const { sheetStock, item_name, ...rest } = p;
       return {
         ...rest,
         inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
@@ -531,7 +597,7 @@ app.get('/api/products', async (req, res) => {
       const current = await readInventoryMap(inventoryFile, readJsonFile);
       const inventory = mapInventoryForProducts(_productsCache, current);
       return res.json(_productsCache.map((p) => {
-        const { sheetStock, ...rest } = p;
+        const { sheetStock, item_name, ...rest } = p;
         return {
           ...rest,
           inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
@@ -548,6 +614,7 @@ app.get('/api/inventory', async (req, res) => {
     const rows = products.map((p) => ({
       id: p.id,
       name: p.name,
+      item_name: p.item_name ?? null,
       price: p.price,
       inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
     }));
@@ -561,27 +628,70 @@ app.get('/api/inventory', async (req, res) => {
 app.post('/api/inventory', async (req, res) => {
   try {
     const patch = req.body?.inventory;
-    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-      return res.status(400).json({ error: 'Expected inventory object.' });
+    const namePatch = req.body?.item_names;
+    const hasInv = patch && typeof patch === 'object' && !Array.isArray(patch);
+    const hasNames = namePatch && typeof namePatch === 'object' && !Array.isArray(namePatch);
+    if (!hasInv && !hasNames) {
+      return res.status(400).json({ error: 'Expected inventory object and/or item_names object.' });
     }
 
     const { products, inventory } = await getProductsWithInventory();
     const validIds = new Set(products.map((p) => p.id));
     let touched = 0;
-    for (const [id, value] of Object.entries(patch)) {
-      if (!validIds.has(id)) continue;
-      inventory[id] = normalizeInventoryValue(value, INVENTORY_DEFAULT_QTY);
-      touched += 1;
-    }
-    if (touched === 0) {
-      return res.status(400).json({ error: 'No valid product ids in payload.' });
+    if (hasInv) {
+      for (const [id, value] of Object.entries(patch)) {
+        if (!validIds.has(id)) continue;
+        inventory[id] = normalizeInventoryValue(value, INVENTORY_DEFAULT_QTY);
+        touched += 1;
+      }
     }
 
-    await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
-    return res.json({ updated: touched });
+    if (hasInv && touched === 0) {
+      return res.status(400).json({ error: 'No valid product ids in inventory payload.' });
+    }
+
+    if (touched > 0) {
+      await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
+    }
+
+    let namesUpdated = 0;
+    if (hasNames) {
+      namesUpdated = await updateCatalogItemNames(namePatch, validIds);
+    }
+
+    if (touched > 0 || namesUpdated > 0) {
+      invalidateProductCache();
+    }
+    return res.json({ updated: touched, item_names_updated: namesUpdated });
   } catch (err) {
     console.error('Inventory update error:', err?.message);
     return res.status(500).json({ error: 'Could not update inventory.' });
+  }
+});
+
+app.post('/api/cron/catalog-sync', async (req, res) => {
+  try {
+    const expected = (process.env.CATALOG_SYNC_SECRET || '').trim();
+    if (!expected) {
+      return res.status(503).json({ error: 'CATALOG_SYNC_SECRET is not set (add it to enable scheduled sync).' });
+    }
+    const bearer = (req.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    const headerTok = (req.get('x-catalog-sync-token') || '').trim();
+    if (bearer !== expected && headerTok !== expected) {
+      return res.status(403).json({ error: 'Forbidden.' });
+    }
+
+    const pull = req.body?.pull !== false && req.query?.pull !== '0';
+    const push = req.body?.push !== false && req.query?.push !== '0';
+
+    const result = await runCatalogSync({ pull, push });
+    if (pull) {
+      invalidateProductCache();
+    }
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('catalog-sync cron error:', err?.message || err);
+    return res.status(500).json({ error: err?.message || 'Catalog sync failed.' });
   }
 });
 
@@ -617,7 +727,7 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
   console.log(
     inventoryUsesSupabase()
-      ? 'Inventory backend: Supabase Postgres (product_inventory)'
+      ? 'Inventory backend: Supabase Postgres (catalog_sheet)'
       : 'Inventory backend: data/inventory.json — set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL or SUPABASE_PROJECT_REF',
   );
 });
