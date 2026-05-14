@@ -54,7 +54,8 @@ export function parseImages(cell) {
     .filter(Boolean);
 }
 
-function findStockColumnIndex(c) {
+/** Header or row cells: index of stock column by common labels. */
+export function findStockColumnIndex(c) {
   const labels = new Set(['inventory', 'stock', 'qty', 'quantity', 'available', 'inventario']);
   for (let i = 0; i < c.length; i++) {
     const h = (c[i] || '').trim().toLowerCase();

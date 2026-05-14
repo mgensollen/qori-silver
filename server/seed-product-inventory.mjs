@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Fetches the Google Sheet catalog, merges inventory (DB + sheet defaults),
- * and upserts every product row into Supabase product_inventory.
+ * Imports the Google Sheet CSV into Supabase public.catalog_sheet (full column mirror).
+ * Merges quantities with existing DB values when present (same rules as the live server).
  *
- * Usage (from repo root, with .env containing SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY):
+ * Usage (repo root .env with Supabase keys):
  *   npm run seed-inventory
  */
 import dotenv from 'dotenv';
@@ -14,10 +14,13 @@ import fs from 'fs/promises';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 dotenv.config({ path: path.join(projectRoot, '.env') });
+dotenv.config({ path: path.join(projectRoot, '.env.local') });
+dotenv.config({ path: path.join(projectRoot, 'js', '.env') });
 
 const { parseProducts, sheetCsvUrl } = await import('./sheet-products.js');
 const { mapInventoryForProducts } = await import('./inventory-merge.js');
-const { inventoryUsesSupabase, readInventoryMap, writeInventoryMap } = await import('./inventory-store.js');
+const { inventoryUsesSupabase, readInventoryMap } = await import('./inventory-store.js');
+const { bootstrapCatalogFromCsv, fetchProductsFromCatalogSheet } = await import('./catalog-sheet-db.js');
 
 const inventoryFile = path.join(projectRoot, 'data', 'inventory.json');
 
@@ -30,12 +33,10 @@ async function readJsonFile(filePath, fallbackValue) {
   }
 }
 
-async function noopWriteJson() {}
-
 async function main() {
   if (!inventoryUsesSupabase()) {
     console.error(
-      'Missing Supabase env. In .env at repo root set SUPABASE_SERVICE_ROLE_KEY and either SUPABASE_URL (https://xxx.supabase.co) or SUPABASE_PROJECT_REF (xxx).',
+      'Missing Supabase env. In .env at repo root set SUPABASE_SERVICE_ROLE_KEY and either SUPABASE_URL or SUPABASE_PROJECT_REF.',
     );
     console.error(`(looked for .env at ${path.join(projectRoot, '.env')})`);
     process.exit(1);
@@ -54,13 +55,19 @@ async function main() {
     process.exit(1);
   }
 
-  const current = await readInventoryMap(inventoryFile, readJsonFile);
+  let current = {};
+  try {
+    current = await readInventoryMap(inventoryFile, readJsonFile);
+  } catch {
+    /* catalog_sheet may not exist yet — treat as empty inventory map */
+  }
   const inventory = mapInventoryForProducts(products, current);
-  await writeInventoryMap(inventoryFile, inventory, noopWriteJson);
+  await bootstrapCatalogFromCsv(inventory);
 
-  console.log(`Upserted ${Object.keys(inventory).length} rows into product_inventory.`);
-  for (const p of products) {
-    console.log(`  ${p.id}\t${inventory[p.id]}`);
+  const rows = await fetchProductsFromCatalogSheet();
+  console.log(`Upserted catalog_sheet (${rows.length} rows).`);
+  for (const p of rows) {
+    console.log(`  ${p.id}\tinv=${p.sheetStock ?? '?'}`);
   }
 }
 
