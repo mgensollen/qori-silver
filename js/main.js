@@ -94,9 +94,12 @@ function activateTab(tabId) {
   document.querySelectorAll('.tab-section').forEach(p =>
     p.classList.toggle('active', p.id === 'tab-' + tabId));
   history.replaceState(null, '', '#' + tabId);
+
+  // Init carousels only once per panel — skip if already done
   const panel = document.getElementById('tab-' + tabId);
-  if (panel) {
+  if (panel && !panel.dataset.carouselsReady) {
     panel.querySelectorAll('.pieces-grid').forEach(g => initCarousels(g));
+    panel.dataset.carouselsReady = '1';
   }
 }
 
@@ -108,7 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     link.addEventListener('click', e => {
       e.preventDefault();
       activateTab(link.dataset.tabTarget);
-      document.getElementById('page-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // Instant scroll — smooth feels like lag on mobile
+      document.getElementById('page-tabs')?.scrollIntoView({ behavior: 'instant', block: 'nearest' });
     }));
 
   const hash = location.hash.replace('#', '');

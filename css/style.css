@@ -71,6 +71,12 @@ body {
 img, svg { display: block; max-width: 100%; }
 a { text-decoration: none; }
 
+/* Eliminate 300ms tap delay on all interactive elements */
+a, button, [data-tab-target], [data-cart-open], [data-cart-close],
+[data-add-to-cart], [data-cart-checkout], [data-cart-clear] {
+  touch-action: manipulation;
+}
+
 /* ── TYPOGRAPHY ── */
 .sec-label {
   font-family: 'Cinzel', serif;
