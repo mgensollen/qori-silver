@@ -110,9 +110,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-tab-target]').forEach(link =>
     link.addEventListener('click', e => {
       e.preventDefault();
-      activateTab(link.dataset.tabTarget);
-      // Instant scroll — smooth feels like lag on mobile
-      document.getElementById('page-tabs')?.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+      const tabId = link.dataset.tabTarget;
+      activateTab(tabId);
+
+      // Scroll user to the tab content, cleared below the sticky navbar + tab bar
+      const panel = document.getElementById('tab-' + tabId);
+      if (panel) {
+        const navH  = document.querySelector('.navbar')?.offsetHeight  || 0;
+        const tabsH = document.getElementById('page-tabs')?.offsetHeight || 0;
+        const top   = panel.getBoundingClientRect().top + window.pageYOffset - navH - tabsH - 8;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
     }));
 
   const hash = location.hash.replace('#', '');
