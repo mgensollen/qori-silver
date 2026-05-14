@@ -62,10 +62,13 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
     if (!error && data?.length) {
       const out = {};
       for (const row of data) {
-        if (row?.site_product_id) {
-          const q = Number(row.inventory);
-          out[row.site_product_id] = Number.isFinite(q) && q >= 0 ? Math.floor(q) : 0;
-        }
+        if (!row?.site_product_id) continue;
+        const id = String(row.site_product_id).trim();
+        if (!id) continue;
+        // NULL / missing inventory must not become 0 (that reads as sold out). Let merge use sheet row / defaults.
+        if (row.inventory === null || row.inventory === undefined || row.inventory === '') continue;
+        const q = Number(row.inventory);
+        if (Number.isFinite(q) && q >= 0) out[id] = Math.floor(q);
       }
       if (Object.keys(out).length > 0) return out;
     }
@@ -81,13 +84,17 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
     if (!error && data?.length) {
       const out = {};
       for (const row of data) {
-        if (row?.id) {
-          const q = Number(row.quantity);
-          out[row.id] = Number.isFinite(q) && q >= 0 ? Math.floor(q) : 0;
-        }
+        if (!row?.id) continue;
+        const id = String(row.id).trim();
+        if (!id) continue;
+        if (row.quantity === null || row.quantity === undefined || row.quantity === '') continue;
+        const q = Number(row.quantity);
+        if (Number.isFinite(q) && q >= 0) out[id] = Math.floor(q);
       }
-      console.log(`inventory-store: read ${Object.keys(out).length} rows from product_inventory (legacy)`);
-      return out;
+      if (Object.keys(out).length > 0) {
+        console.log(`inventory-store: read ${Object.keys(out).length} rows from product_inventory (legacy)`);
+        return out;
+      }
     }
   } catch (e) {
     console.warn('inventory-store: product_inventory read failed:', e?.message);

@@ -267,9 +267,17 @@ async function loadStripeMode() {
   }
 }
 
-function getAvailableInventory(productId) {
+function getServerInventory(productId) {
   if (!inventoryById.has(productId)) return Number.POSITIVE_INFINITY;
   return Number(inventoryById.get(productId)) || 0;
+}
+
+/** Units left to sell after what is already in the cart (server truth minus this browser’s cart). */
+function getAvailableInventory(productId) {
+  const server = getServerInventory(productId);
+  if (server === Number.POSITIVE_INFINITY) return server;
+  const inCart = cart.items.find((i) => i.id === productId)?.qty || 0;
+  return Math.max(0, server - inCart);
 }
 
 function canAddQty(productId, nextQty) {
@@ -279,10 +287,14 @@ function canAddQty(productId, nextQty) {
 function applyInventoryToButtons() {
   document.querySelectorAll('[data-add-to-cart]').forEach((el) => {
     if (!(el instanceof HTMLButtonElement)) return;
-    const id = el.getAttribute('data-product-id') || '';
+    const id = (el.getAttribute('data-product-id') || '').trim();
     if (!id) return;
-    const available = getAvailableInventory(id);
-    const soldOut = available <= 0;
+    const serverInv = getServerInventory(id);
+    const remaining = getAvailableInventory(id);
+    const inCart = cart.items.find((i) => i.id === id)?.qty || 0;
+    const trulyGone = serverInv !== Number.POSITIVE_INFINITY && serverInv <= 0;
+    const cannotAddMore = remaining <= 0;
+    const atCartCap = !trulyGone && cannotAddMore && inCart > 0;
     const card = el.closest('.piece, .shop-card');
     const soldOutId = `soldout-${id}`;
     const parent = el.parentElement;
@@ -298,8 +310,8 @@ function applyInventoryToButtons() {
         msg.hidden = true;
         parent.insertBefore(msg, el);
       }
-      msg.hidden = !soldOut;
-      if (soldOut) {
+      msg.hidden = !trulyGone;
+      if (trulyGone) {
         el.setAttribute('aria-describedby', soldOutId);
       } else {
         el.removeAttribute('aria-describedby');
@@ -307,27 +319,65 @@ function applyInventoryToButtons() {
     }
 
     if (card) {
-      card.classList.toggle('is-soldout', soldOut);
+      card.classList.toggle('is-soldout', trulyGone);
     }
 
-    el.disabled = soldOut;
-    el.textContent = soldOut ? 'Unavailable' : 'Add to cart';
+    el.disabled = cannotAddMore;
+    if (trulyGone) {
+      el.textContent = 'Unavailable';
+    } else if (atCartCap) {
+      el.textContent = 'In your cart';
+    } else {
+      el.textContent = 'Add to cart';
+    }
   });
+}
+
+/** Clamp cart quantities to server stock after inventory loads (fixes stale localStorage). */
+function reconcileCartWithInventory() {
+  if (inventoryById.size === 0) return;
+  const next = [];
+  for (const it of cart.items) {
+    const cap = inventoryById.has(it.id)
+      ? Math.max(0, Number(inventoryById.get(it.id)) || 0)
+      : Number.POSITIVE_INFINITY;
+    const q = cap === Number.POSITIVE_INFINITY ? it.qty : Math.min(it.qty, cap);
+    if (q > 0) next.push({ ...it, qty: q });
+  }
+  const same =
+    next.length === cart.items.length
+    && next.every((it, i) => it.id === cart.items[i].id && it.qty === cart.items[i].qty);
+  if (same) return;
+  cart = { items: next };
+  writeCart(cart);
+  renderCart(cart);
 }
 
 async function loadInventory() {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
   try {
-    const res = await fetch(`${apiBase}/api/products`);
+    const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
     if (!res.ok) return;
     const products = await res.json();
     if (!Array.isArray(products)) return;
-    inventoryById.clear();
+    const next = new Map();
     for (const p of products) {
       if (!p || typeof p.id !== 'string') continue;
-      const qty = Number.isFinite(Number(p.inventory)) ? Math.max(0, Math.floor(Number(p.inventory))) : Number.POSITIVE_INFINITY;
-      inventoryById.set(p.id, qty);
+      const id = p.id.trim();
+      if (!id) continue;
+      const raw = p.inventory;
+      let qty;
+      if (raw === null || raw === undefined || raw === '') {
+        qty = Number.POSITIVE_INFINITY;
+      } else {
+        const n = Number(raw);
+        qty = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : Number.POSITIVE_INFINITY;
+      }
+      next.set(id, qty);
     }
+    inventoryById.clear();
+    for (const [k, v] of next) inventoryById.set(k, v);
+    reconcileCartWithInventory();
     applyInventoryToButtons();
   } catch (err) {
     console.warn('Inventory load failed:', err);
@@ -412,7 +462,10 @@ function renderCart(cart) {
 
   if (cartSubtotalEl) cartSubtotalEl.textContent = money(cartSubtotal(cart));
 
-  if (!cartItemsEl) return;
+  if (!cartItemsEl) {
+    applyInventoryToButtons();
+    return;
+  }
 
   if (cart.items.length === 0) {
     cartItemsEl.innerHTML = `
@@ -421,6 +474,7 @@ function renderCart(cart) {
         <div class="cart-empty-sub">Explore our collection and add a piece you love.</div>
       </div>
     `;
+    applyInventoryToButtons();
     return;
   }
 
@@ -438,6 +492,7 @@ function renderCart(cart) {
       </div>
     </div>
   `).join('');
+  applyInventoryToButtons();
 }
 
 function computeCheckoutReturnBase() {
@@ -500,7 +555,7 @@ cartOverlay?.addEventListener('click', closeCart);
 document.querySelectorAll('[data-add-to-cart]').forEach(el => {
   el.addEventListener('click', (e) => {
     e.preventDefault();
-    const id = el.getAttribute('data-product-id') ?? 'test-item';
+    const id = (el.getAttribute('data-product-id') ?? 'test-item').trim();
     const name = el.getAttribute('data-product-name') ?? 'Test Item';
     const price = Number.parseFloat(el.getAttribute('data-product-price') ?? '0') || 0;
     const previousQty = cart.items.find(i => i.id === id)?.qty || 0;

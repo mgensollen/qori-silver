@@ -113,7 +113,7 @@ async function loadProducts() {
 
   const apiBase = (window.QORI_API_BASE || '').replace(/\/$/, '');
   try {
-    const res = await fetch(`${apiBase}/api/products`);
+    const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const products = await res.json();
 

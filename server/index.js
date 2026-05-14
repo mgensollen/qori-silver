@@ -39,7 +39,7 @@ if (!stripeSecretKey) {
 const stripe = new Stripe(stripeSecretKey);
 
 const allowedOrigins = new Set(
-  (process.env.CORS_ORIGIN || 'https://www.qorisilver.com,https://mgensollen.github.io')
+  (process.env.CORS_ORIGIN || 'https://www.qorisilver.com,https://qorisilver.com,https://mgensollen.github.io')
     .split(',').map(s => s.trim()).filter(Boolean)
 );
 
@@ -582,6 +582,7 @@ async function decrementInventoryFromSession(session) {
 }
 
 app.get('/api/products', async (req, res) => {
+  res.set('Cache-Control', 'private, no-store, max-age=0');
   try {
     const { products, inventory } = await getProductsWithInventory();
     return res.json(products.map((p) => {
