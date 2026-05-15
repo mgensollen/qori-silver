@@ -590,6 +590,21 @@ async function decrementInventoryFromSession(session) {
 app.get('/api/products', async (req, res) => {
   res.set('Cache-Control', 'private, no-store, max-age=0');
   try {
+    // When Supabase is active, read directly — no caching, no merging, no write-back.
+    // catalog_sheet.inventory is the sole truth: 1 = available, 0 = sold out, NULL = sold out.
+    if (inventoryUsesSupabase()) {
+      const products = await fetchProductsFromCatalogSheet();
+      return res.json(products.map((p) => {
+        const { sheetStock, item_name, ...rest } = p;
+        const slug = productSlugForSiteId(p.id);
+        return {
+          ...rest,
+          slug,
+          inventory: normalizeInventoryValue(sheetStock, 0),
+        };
+      }));
+    }
+
     const { products, inventory } = await getProductsWithInventory();
     return res.json(products.map((p) => {
       const { sheetStock, item_name, ...rest } = p;
@@ -602,19 +617,6 @@ app.get('/api/products', async (req, res) => {
     }));
   } catch (err) {
     console.error('Products fetch error:', err?.message);
-    if (_productsCache) {
-      const current = await readInventoryMap(inventoryFile, readJsonFile);
-      const inventory = mapInventoryForProducts(_productsCache, current);
-      return res.json(_productsCache.map((p) => {
-        const { sheetStock, item_name, ...rest } = p;
-        const slug = productSlugForSiteId(p.id);
-        return {
-          ...rest,
-          slug,
-          inventory: normalizeInventoryValue(inventory[p.id], INVENTORY_DEFAULT_QTY),
-        };
-      }));
-    }
     return res.status(502).json({ error: 'Could not load products.' });
   }
 });
