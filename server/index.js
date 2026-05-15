@@ -621,6 +621,24 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+app.get('/api/debug-inventory', async (_req, res) => {
+  const usingSupabase = inventoryUsesSupabase();
+  const result = { usingSupabase, products: [] };
+  try {
+    if (usingSupabase) {
+      const products = await fetchProductsFromCatalogSheet();
+      result.products = products.map(p => ({ id: p.id, supabaseInventory: p.sheetStock ?? null }));
+    } else {
+      result.note = 'Supabase not configured — reading from Google Sheet CSV + local file';
+      const { products, inventory } = await getProductsWithInventory();
+      result.products = products.map(p => ({ id: p.id, computedInventory: inventory[p.id] ?? null, sheetStock: p.sheetStock ?? null }));
+    }
+  } catch (e) {
+    result.error = e.message;
+  }
+  res.json(result);
+});
+
 app.get('/api/inventory', async (req, res) => {
   try {
     const { products, inventory } = await getProductsWithInventory();
