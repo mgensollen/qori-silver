@@ -273,7 +273,7 @@ async function loadStripeMode() {
 
 function getServerInventory(productId) {
   if (!inventoryFromApiReady) return null;
-  if (!inventoryById.has(productId)) return 0;
+  if (!inventoryById.has(productId)) return null; // unknown → don't show sold-out
   const raw = inventoryById.get(productId);
   if (raw === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
   const n = Number(raw);

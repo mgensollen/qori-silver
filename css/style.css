@@ -570,10 +570,13 @@ h1 em {
 /* White product image containers — jewelry pops on white */
 .piece-img {
   background: #FFFFFF;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
+  /* padding-top creates the aspect ratio — works on all browsers including iOS Safari.
+     aspect-ratio on a block with only abs-positioned children collapses to 0 in Safari. */
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 0;
+  padding-top: 100%; /* 1:1 square */
   margin-bottom: 1.4rem;
   overflow: hidden;
   transition: transform 0.5s ease, box-shadow 0.5s ease;
@@ -581,10 +584,7 @@ h1 em {
   border: 1px solid var(--gold-line) !important;
   border-bottom: none !important;
   box-shadow: 0 2px 16px rgba(28,18,8,0.06);
-  width: 100%;
-  max-width: 100%;
   min-width: 0;
-  min-height: 0;
 }
 .piece:hover .piece-img {
   transform: translateY(-6px);
@@ -1344,7 +1344,7 @@ footer {
 
   .pieces { padding: 4rem 1.2rem; }
   .pieces-grid { grid-template-columns: 1fr; gap: 2rem; }
-  .piece-img { aspect-ratio: 4/5; }
+  .piece-img { padding-top: 125%; } /* 4:5 portrait = 5÷4 = 125% */
   .piece-add { min-height: 50px; font-size: 0.65rem; padding: 1rem; }
 
   .shop-grid { grid-template-columns: 1fr; }
