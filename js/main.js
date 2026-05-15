@@ -385,13 +385,18 @@ function reconcileCartWithInventory() {
   renderCart(cart);
 }
 
-async function loadInventory() {
+async function loadInventory(preloadedProducts) {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
   inventoryLoadFailed = false;
   try {
-    const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const products = await res.json();
+    let products;
+    if (Array.isArray(preloadedProducts)) {
+      products = preloadedProducts;
+    } else {
+      const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      products = await res.json();
+    }
     if (!Array.isArray(products)) throw new Error('Invalid products payload');
     const next = new Map();
     for (const p of products) {
@@ -663,11 +668,13 @@ document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) =>
   });
 });
 
-loadInventory();
+if (!document.querySelector('[data-qori-products]')) {
+  loadInventory();
+}
 loadStripeMode();
 
-document.addEventListener('qori:shop-products-rendered', () => {
-  loadInventory();
+document.addEventListener('qori:shop-products-rendered', (e) => {
+  loadInventory(e.detail?.products);
 });
 
 /* ── Console welcome ── */

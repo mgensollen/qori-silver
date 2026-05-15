@@ -215,7 +215,7 @@ async function hydrateProductGrid(grid) {
     grid.dataset.qoriProductsReady = '1';
 
     initCarousels(grid);
-    document.dispatchEvent(new CustomEvent('qori:shop-products-rendered'));
+    document.dispatchEvent(new CustomEvent('qori:shop-products-rendered', { detail: { products } }));
 
     applyShopItemListLd(products);
     applyHomeCollectionItemListLd(products);
