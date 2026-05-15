@@ -77,19 +77,26 @@ function buildPieceCard(p, linkBase) {
   const price = formatPrice(p.price);
   const mat = esc(p.material || '');
 
+  // Set sold-out state directly from the API inventory value at render time.
+  // This means the correct state is visible immediately — no async JS required.
+  const invNum = Number(p.inventory);
+  const soldOut = Number.isFinite(invNum) && invNum <= 0;
+
   return `
-      <div class="piece">
+      <div class="piece${soldOut ? ' is-soldout' : ''}">
         ${buildPieceCarousel(p)}
         <div class="piece-cat" style="color:${catColor}">${esc(p.category || '')}</div>
         ${nameHtml}
         <div class="piece-price">${price}</div>
         <div class="piece-mat">${mat}</div>
+        ${soldOut ? `<div class="soldout-note"><span class="soldout-dot"></span>Sold out</div>` : ''}
         <button class="piece-add" type="button"
           data-add-to-cart
           data-product-id="${esc(p.id)}"
           data-product-name="${esc(p.name)}"
           data-product-price="${Number.isFinite(Number(p.price)) ? Number(p.price).toFixed(2) : '0.00'}"
-        >Add to cart</button>
+          ${soldOut ? 'disabled' : ''}
+        >${soldOut ? 'Unavailable' : 'Add to cart'}</button>
       </div>`;
 }
 
