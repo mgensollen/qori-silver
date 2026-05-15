@@ -471,9 +471,15 @@ async function fetchProducts() {
 async function getProductsWithInventory() {
   let products = await fetchProducts();
   let current = await readInventoryMap(inventoryFile, readJsonFile);
-  let inventory = mapInventoryForProducts(products, current);
 
   if (inventoryUsesSupabase()) {
+    // When Supabase is the inventory backend, never fall back to potentially stale
+    // sheetStock values from the 5-minute product cache. readInventoryMap (live) is
+    // the sole authority; products with NULL inventory default to INVENTORY_DEFAULT_QTY.
+    const stripSheetStock = (ps) => ps.map(({ sheetStock, ...rest }) => rest);
+
+    let inventory = mapInventoryForProducts(stripSheetStock(products), current);
+
     try {
       if ((await countCatalogRows()) === 0 && products.length > 0) {
         await bootstrapCatalogFromCsv(inventory);
@@ -481,7 +487,7 @@ async function getProductsWithInventory() {
         _productsCacheAt = 0;
         products = await fetchProducts();
         current = await readInventoryMap(inventoryFile, readJsonFile);
-        inventory = mapInventoryForProducts(products, current);
+        inventory = mapInventoryForProducts(stripSheetStock(products), current);
       }
     } catch (err) {
       console.warn('catalog_sheet bootstrap:', err?.message);
@@ -492,6 +498,7 @@ async function getProductsWithInventory() {
     return { products, inventory };
   }
 
+  let inventory = mapInventoryForProducts(products, current);
   if (!inventoryStateEquals(current, inventory)) {
     await writeInventoryMap(inventoryFile, inventory, writeJsonFile);
   }
