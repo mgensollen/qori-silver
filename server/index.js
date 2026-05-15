@@ -442,17 +442,15 @@ function invalidateProductCache() {
 }
 
 async function fetchProducts() {
-  if (_productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
+  // When Supabase is active, always read fresh from the DB — it is the authoritative
+  // source and caching sheetStock values can cause false sold-out after inventory changes.
+  if (!inventoryUsesSupabase() && _productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
     return _productsCache;
   }
   if (inventoryUsesSupabase()) {
     try {
       const fromDb = await fetchProductsFromCatalogSheet();
-      if (fromDb.length > 0) {
-        _productsCache = fromDb;
-        _productsCacheAt = Date.now();
-        return fromDb;
-      }
+      if (fromDb.length > 0) return fromDb;
     } catch (err) {
       console.warn('Supabase catalog_sheet read failed, using Google Sheet:', err?.message);
     }
