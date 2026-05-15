@@ -388,8 +388,12 @@ function reconcileCartWithInventory() {
 async function loadInventory(preloadedProducts) {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
   inventoryLoadFailed = false;
+
+  // Only catch errors during the data-loading phase.
+  // Post-processing (reconcile, apply) must NOT be inside this try-catch —
+  // a crash there would wrongly set inventoryLoadFailed and show "Unavailable" everywhere.
+  let products;
   try {
-    let products;
     if (Array.isArray(preloadedProducts)) {
       products = preloadedProducts;
     } else {
@@ -398,33 +402,35 @@ async function loadInventory(preloadedProducts) {
       products = await res.json();
     }
     if (!Array.isArray(products)) throw new Error('Invalid products payload');
-    const next = new Map();
-    for (const p of products) {
-      if (!p || typeof p.id !== 'string') continue;
-      const id = p.id.trim();
-      if (!id) continue;
-      const raw = p.inventory;
-      let qty;
-      if (raw === null || raw === undefined || raw === '') {
-        qty = Number.POSITIVE_INFINITY;
-      } else {
-        const n = Number(raw);
-        qty = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : Number.POSITIVE_INFINITY;
-      }
-      next.set(id, qty);
-    }
-    inventoryById.clear();
-    for (const [k, v] of next) inventoryById.set(k, v);
-    inventoryFromApiReady = true;
-    reconcileCartWithInventory();
-    applyInventoryToButtons();
   } catch (err) {
     console.warn('Inventory load failed:', err);
     inventoryFromApiReady = false;
     inventoryLoadFailed = true;
     inventoryById.clear();
     applyInventoryToButtons();
+    return;
   }
+
+  const next = new Map();
+  for (const p of products) {
+    if (!p || typeof p.id !== 'string') continue;
+    const id = p.id.trim();
+    if (!id) continue;
+    const raw = p.inventory;
+    let qty;
+    if (raw === null || raw === undefined || raw === '') {
+      qty = Number.POSITIVE_INFINITY;
+    } else {
+      const n = Number(raw);
+      qty = Number.isFinite(n) ? Math.max(0, Math.floor(n)) : Number.POSITIVE_INFINITY;
+    }
+    next.set(id, qty);
+  }
+  inventoryById.clear();
+  for (const [k, v] of next) inventoryById.set(k, v);
+  inventoryFromApiReady = true;
+  reconcileCartWithInventory();
+  applyInventoryToButtons();
 }
 
 function readCart() {
