@@ -297,67 +297,27 @@ function canAddQty(productId, nextQty) {
   return nextQty <= avail;
 }
 
+// Sold-out state is set at render time by buildPieceCard based on API inventory.
+// This function only manages cart-quantity state: "In your cart" vs "Add to cart".
+// It never overrides the sold-out state and never disables based on loading failures.
 function applyInventoryToButtons() {
   document.querySelectorAll('[data-add-to-cart]').forEach((el) => {
     if (!(el instanceof HTMLButtonElement)) return;
     const id = (el.getAttribute('data-product-id') || '').trim();
     if (!id) return;
-    const serverInv = getServerInventory(id);
-    const remaining = getAvailableInventory(id);
+
+    // Never touch a button that's already sold-out from render time
+    if (el.closest('.is-soldout')) return;
+
     const inCart = cart.items.find((i) => i.id === id)?.qty || 0;
+    const serverInv = getServerInventory(id);
+    const remaining = serverInv === null || serverInv === Number.POSITIVE_INFINITY
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, serverInv - inCart);
 
-    if (serverInv === null) {
-      const card = el.closest('.piece, .shop-card, .product-detail');
-      if (card) card.classList.remove('is-soldout');
-      const parent = el.parentElement;
-      if (parent) {
-        const msg = parent.querySelector(`[data-soldout-for="${id}"]`);
-        if (msg) msg.hidden = true;
-      }
-      el.disabled = true;
-      el.textContent = inventoryLoadFailed ? 'Unavailable' : 'Loading…';
-      el.removeAttribute('aria-describedby');
-      return;
-    }
-
-    const trulyGone = serverInv <= 0;
-    const cannotAddMore = remaining !== null && remaining <= 0;
-    const atCartCap = !trulyGone && cannotAddMore && inCart > 0;
-    const card = el.closest('.piece, .shop-card, .product-detail');
-    const soldOutId = `soldout-${id}`;
-    const parent = el.parentElement;
-
-    if (parent) {
-      let msg = parent.querySelector(`[data-soldout-for="${id}"]`);
-      if (!msg) {
-        msg = document.createElement('div');
-        msg.className = 'soldout-note';
-        msg.setAttribute('data-soldout-for', id);
-        msg.id = soldOutId;
-        msg.innerHTML = '<span class="soldout-dot"></span>Sold out';
-        msg.hidden = true;
-        parent.insertBefore(msg, el);
-      }
-      msg.hidden = !trulyGone;
-      if (trulyGone) {
-        el.setAttribute('aria-describedby', soldOutId);
-      } else {
-        el.removeAttribute('aria-describedby');
-      }
-    }
-
-    if (card) {
-      card.classList.toggle('is-soldout', trulyGone);
-    }
-
-    el.disabled = cannotAddMore;
-    if (trulyGone) {
-      el.textContent = 'Unavailable';
-    } else if (atCartCap) {
-      el.textContent = 'In your cart';
-    } else {
-      el.textContent = 'Add to cart';
-    }
+    const atCartCap = inCart > 0 && remaining <= 0;
+    el.disabled = atCartCap;
+    el.textContent = atCartCap ? 'In your cart' : 'Add to cart';
   });
 }
 
