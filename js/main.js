@@ -515,6 +515,33 @@ function computeCheckoutReturnBase() {
 
 async function startStripeCheckout(cart) {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
+
+  // Verify every cart item is still in stock before creating the Stripe session
+  try {
+    const stockRes = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
+    if (stockRes.ok) {
+      const freshProducts = await stockRes.json();
+      if (Array.isArray(freshProducts)) {
+        const invMap = new Map(freshProducts.map(p => [p.id, Number(p.inventory)]));
+        const unavailable = cart.items.filter(it => {
+          const inv = invMap.get(it.id);
+          return Number.isFinite(inv) && inv <= 0;
+        });
+        if (unavailable.length > 0) {
+          const names = unavailable.map(i => `"${i.name}"`).join(' and ');
+          alert(`${names} ${unavailable.length === 1 ? 'is' : 'are'} no longer available and ${unavailable.length === 1 ? 'has' : 'have'} been removed from your cart.`);
+          const badIds = new Set(unavailable.map(i => i.id));
+          cart = { ...cart, items: cart.items.filter(i => !badIds.has(i.id)) };
+          writeCart(cart);
+          renderCart(cart);
+          return;
+        }
+      }
+    }
+  } catch {
+    // Stock check failed — proceed anyway; Stripe will catch inventory issues server-side
+  }
+
   const items = (cart?.items ?? []).map(it => ({
     id: it.id,
     name: it.name,
@@ -565,6 +592,13 @@ document.addEventListener('click', (e) => {
   const el = e.target instanceof Element ? e.target.closest('[data-add-to-cart]') : null;
   if (!el || !(el instanceof HTMLButtonElement)) return;
   e.preventDefault();
+
+  // Block if card is marked sold-out at render time
+  if (el.closest('.is-soldout')) {
+    alert('This item is sold out.');
+    return;
+  }
+
   if (!inventoryFromApiReady) {
     alert(inventoryLoadFailed ? 'Could not load stock. Please refresh the page.' : 'Still loading availability — try again in a moment.');
     return;
@@ -575,7 +609,7 @@ document.addEventListener('click', (e) => {
   const previousQty = cart.items.find(i => i.id === id)?.qty || 0;
 
   if (!canAddQty(id, previousQty + 1)) {
-    alert(getServerInventory(id) === 0 ? 'This item is sold out.' : 'This item is out of stock.');
+    alert('This item is sold out.');
     return;
   }
 

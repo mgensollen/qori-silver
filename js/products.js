@@ -204,31 +204,69 @@ function applyHomeCollectionItemListLd(products) {
   }
 }
 
+/* ── Product cache (stale-while-revalidate) ── */
+const PRODUCTS_CACHE_KEY = 'qori_products_v1';
+const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+function readProductsCache() {
+  try {
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (!raw) return null;
+    const { at, products } = JSON.parse(raw);
+    if (!Array.isArray(products) || Date.now() - at > PRODUCTS_CACHE_TTL) return null;
+    return products;
+  } catch { return null; }
+}
+
+function writeProductsCache(products) {
+  try { localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ at: Date.now(), products })); } catch {}
+}
+
+function renderGridProducts(grid, products, linkBase) {
+  grid.innerHTML = products.map((p) => buildPieceCard(p, linkBase)).join('\n');
+  grid.dataset.qoriProductsReady = '1';
+  initCarousels(grid);
+  document.dispatchEvent(new CustomEvent('qori:shop-products-rendered', { detail: { products } }));
+  applyShopItemListLd(products);
+  applyHomeCollectionItemListLd(products);
+}
+
 async function hydrateProductGrid(grid) {
   const apiBase = (window.QORI_API_BASE || '').replace(/\/$/, '');
   const linkBase = (grid.getAttribute('data-qori-product-link-base') || 'products/').trim() || 'products/';
 
+  // Show cached products immediately — page feels instant on repeat visits
+  const cached = readProductsCache();
+  if (cached && cached.length > 0) {
+    renderGridProducts(grid, cached, linkBase);
+  }
+
+  // Always fetch fresh data in the background
   try {
     const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const products = await res.json();
 
     if (!Array.isArray(products) || products.length === 0) {
-      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">No products available right now.</p>';
+      if (!grid.dataset.qoriProductsReady) {
+        grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">No products available right now.</p>';
+      }
       return;
     }
 
-    grid.innerHTML = products.map((p) => buildPieceCard(p, linkBase)).join('\n');
-    grid.dataset.qoriProductsReady = '1';
-
-    initCarousels(grid);
-    document.dispatchEvent(new CustomEvent('qori:shop-products-rendered', { detail: { products } }));
-
-    applyShopItemListLd(products);
-    applyHomeCollectionItemListLd(products);
+    // Only re-render if data changed (avoids resetting carousel state on same data)
+    const freshJson = JSON.stringify(products);
+    if (!cached || JSON.stringify(cached) !== freshJson) {
+      writeProductsCache(products);
+      renderGridProducts(grid, products, linkBase);
+    } else {
+      writeProductsCache(products); // update timestamp even if data unchanged
+    }
   } catch (err) {
     console.error('Product grid load failed:', err);
-    grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products — please refresh.</p>';
+    if (!grid.dataset.qoriProductsReady) {
+      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products — please refresh.</p>';
+    }
   }
 }
 

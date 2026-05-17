@@ -442,15 +442,19 @@ function invalidateProductCache() {
 }
 
 async function fetchProducts() {
-  // When Supabase is active, always read fresh from the DB — it is the authoritative
-  // source and caching sheetStock values can cause false sold-out after inventory changes.
-  if (!inventoryUsesSupabase() && _productsCache && Date.now() - _productsCacheAt < 5 * 60 * 1000) {
+  // 30-second cache for all paths. Safe because invalidateProductCache() is called
+  // by the Stripe webhook whenever a purchase decrements inventory.
+  if (_productsCache && Date.now() - _productsCacheAt < 30 * 1000) {
     return _productsCache;
   }
   if (inventoryUsesSupabase()) {
     try {
       const fromDb = await fetchProductsFromCatalogSheet();
-      if (fromDb.length > 0) return fromDb;
+      if (fromDb.length > 0) {
+        _productsCache = fromDb;
+        _productsCacheAt = Date.now();
+        return fromDb;
+      }
     } catch (err) {
       console.warn('Supabase catalog_sheet read failed, using Google Sheet:', err?.message);
     }
@@ -620,6 +624,9 @@ app.get('/api/products', async (req, res) => {
     return res.status(502).json({ error: 'Could not load products.' });
   }
 });
+
+// Lightweight ping — hit this every 10 min from UptimeRobot/cron-job.org to prevent cold starts
+app.get('/api/ping', (_req, res) => res.json({ ok: true, t: Date.now() }));
 
 app.get('/api/debug-inventory', async (_req, res) => {
   const usingSupabase = inventoryUsesSupabase();
