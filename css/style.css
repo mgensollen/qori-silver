@@ -984,14 +984,15 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 }
 
 .shop-img {
-  aspect-ratio: 1;
   background: #FFFFFF;
-  display: flex; align-items: stretch; justify-content: center;
-  position: relative; overflow: hidden;
+  display: block;
   width: 100%;
   max-width: 100%;
+  height: 0;
+  padding-top: 100%; /* 1:1 — same padding-top technique as .piece-img */
+  position: relative;
+  overflow: hidden;
   min-width: 0;
-  min-height: 0;
 }
 
 /* ── CAROUSEL ── */
