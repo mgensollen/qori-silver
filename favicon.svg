@@ -3,35 +3,35 @@
   <!-- Background -->
   <rect width="64" height="64" rx="6" fill="#1A1410"/>
 
-  <!-- ── LEFT WING: 3 separate white strips, dark gap between each ── -->
+  <!-- LEFT WING: 4 separate white strips, dark gap between each -->
   <polygon points="2,11  22,17  22,21  2,15" fill="#E8E2D6"/>
   <polygon points="2,17  22,23  22,27  2,21" fill="#E8E2D6"/>
   <polygon points="2,23  20,28  20,32  2,27" fill="#E8E2D6"/>
   <polygon points="2,29  16,33  16,37  2,33" fill="#E8E2D6"/>
 
-  <!-- ── RIGHT WING: mirrored ── -->
+  <!-- RIGHT WING: mirrored -->
   <polygon points="62,11  42,17  42,21  62,15" fill="#E8E2D6"/>
   <polygon points="62,17  42,23  42,27  62,21" fill="#E8E2D6"/>
   <polygon points="62,23  44,28  44,32  62,27" fill="#E8E2D6"/>
   <polygon points="62,29  48,33  48,37  62,33" fill="#E8E2D6"/>
 
-  <!-- ── BODY — large central mass ── -->
+  <!-- BODY -->
   <polygon points="22,17  42,17  46,36  32,42  18,36" fill="#E8E2D6"/>
 
-  <!-- ── HEAD — upper-right, beak pointing right ── -->
+  <!-- HEAD -->
   <polygon points="35,7  45,5  49,13  44,19  35,19  32,11" fill="#E8E2D6"/>
 
   <!-- Neck bridge -->
   <polygon points="34,18  43,18  41,22  25,22  27,19" fill="#E8E2D6"/>
 
-  <!-- ── GOLD CHAIN COLLAR ── -->
+  <!-- GOLD CHAIN COLLAR -->
   <rect x="32" y="17" width="11" height="5" rx="2" fill="#C9A84C"/>
   <rect x="33.5" y="17.5" width="8" height="2.5" rx="1" fill="#E8C84A" opacity="0.5"/>
 
-  <!-- ── TALONS ── -->
+  <!-- TALONS -->
   <polygon points="25,42  21,48  27,46  32,51  37,46  43,48  39,42" fill="#E8E2D6"/>
 
-  <!-- ── CHAIN CLUSTER — 5→4→3→2→1 oval rings, triangular formation ── -->
+  <!-- CHAIN CLUSTER: 5-4-3-2-1 oval rings, triangular formation -->
   <ellipse cx="17" cy="53" rx="3.2" ry="1.7" fill="none" stroke="#C8D4DC" stroke-width="1.2"/>
   <ellipse cx="24" cy="53" rx="3.2" ry="1.7" fill="none" stroke="#C8D4DC" stroke-width="1.2"/>
   <ellipse cx="31" cy="53" rx="3.2" ry="1.7" fill="none" stroke="#C8D4DC" stroke-width="1.2"/>
