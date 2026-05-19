@@ -1004,12 +1004,13 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   max-width: 100%;
   min-width: 0;
 }
-/* Track: absolutely positioned — its height = piece-img height (from padding-top trick) */
+/* Track: absolutely positioned — its height = piece-img height.
+   NO overflow:hidden here — when the track transforms, its clip rect moves
+   with it, making slides 2+ permanently invisible. piece-img clips instead. */
 .shop-img[data-carousel] > .carousel-track,
 .piece-img[data-carousel] > .carousel-track {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  overflow: hidden;
 }
 /* Track itself: flex row of slides */
 .carousel-track {
