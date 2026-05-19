@@ -48,8 +48,8 @@ function buildPieceCarousel(p) {
     </div>`;
   }
 
-  const slides = imgs.map((url) => `
-            <div class="carousel-slide"><img src="${esc(url)}" alt="${alt}" loading="eager"></div>`).join('');
+  const slides = imgs.map((url, i) => `
+            <div class="carousel-slide" style="left:${i * 100}%"><img src="${esc(url)}" alt="${alt}" loading="eager"></div>`).join('');
 
   const dots = imgs.map((_, i) =>
     `            <button class="carousel-dot${i === 0 ? ' active' : ''}" aria-label="Photo ${i + 1}"></button>`,

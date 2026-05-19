@@ -1019,20 +1019,21 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   transition: transform 0.38s ease;
   will-change: transform;
 }
-/* Slides: each takes the full width and height of the track */
+/* Slides: absolutely positioned so height comes directly from top:0/bottom:0,
+   not from flex percentage resolution (which is buggy on iOS Safari).
+   left:N*100% is set inline per-slide in products.js. */
 .carousel-slide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 100%;
-  min-width: 100%;
-  flex-shrink: 0;
-  height: 100%;
-  min-height: 0; /* prevent flex min-height auto from breaking height:100% */
   overflow: hidden;
-  position: relative; /* ensures img absolute fallback works */
 }
-/* Images: fill slide — position:absolute guarantees fill even if height:100% misfires */
+/* Images: fill their slide absolutely — both containing block dimensions are
+   definite (slide gets width from parent, height from top:0/bottom:0). */
+.carousel-slide img,
 .shop-img > img,
-.piece-img > img,
-.carousel-slide img {
+.piece-img > img {
   position: absolute;
   inset: 0;
   width: 100%;
