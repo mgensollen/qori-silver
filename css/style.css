@@ -1024,13 +1024,17 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   width: 100%;
   min-width: 100%;
   flex-shrink: 0;
-  height: 100%; /* explicit — track has definite height so this resolves */
+  height: 100%;
+  min-height: 0; /* prevent flex min-height auto from breaking height:100% */
   overflow: hidden;
+  position: relative; /* ensures img absolute fallback works */
 }
-/* Images: fill their slide with simple width/height — no absolute positioning needed */
+/* Images: fill slide — position:absolute guarantees fill even if height:100% misfires */
 .shop-img > img,
 .piece-img > img,
 .carousel-slide img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
