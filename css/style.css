@@ -1365,7 +1365,9 @@ footer {
 
   .pieces { padding: 4rem 1.2rem; }
   .pieces-grid { grid-template-columns: 1fr; gap: 2rem; }
-  .piece-img { padding-top: 125%; } /* 4:5 portrait = 5÷4 = 125% */
+  /* Explicit height avoids padding-top % chain which Safari resolves unreliably.
+     (100vw - 2.4rem) = card width on 1-column grid; ×1.25 = 4:5 portrait ratio. */
+  .piece-img { height: calc((100vw - 2.4rem) * 1.25); padding-top: 0; }
   .piece-add { min-height: 50px; font-size: 0.65rem; padding: 1rem; }
 
   .shop-grid { grid-template-columns: 1fr; }
