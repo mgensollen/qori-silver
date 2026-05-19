@@ -110,6 +110,16 @@ function initCarousels(container) {
     const total = slides.length;
     if (!track || total === 0) return;
 
+    // Force slide heights to match the container in pixels.
+    // CSS percentage-height chains are unreliable on iOS Safari — reading
+    // offsetHeight gives the real rendered pixel value with no ambiguity.
+    function syncHeights() {
+      const h = el.offsetHeight;
+      if (h > 0) slides.forEach((s) => { s.style.height = h + 'px'; });
+    }
+    syncHeights();
+    window.addEventListener('resize', syncHeights, { passive: true });
+
     let cur = 0;
 
     function go(n) {
