@@ -1,4 +1,4 @@
-function money(n) {
+﻿function money(n) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
 
@@ -97,7 +97,7 @@ async function saveInventory() {
     return;
   }
 
-  setStatus('Saving…');
+  setStatus('Saving');
   try {
     const res = await fetch(`${apiBase}/api/inventory`, {
       method: 'POST',

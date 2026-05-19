@@ -1,8 +1,8 @@
-export const INVENTORY_DEFAULT_QTY = 1;
+﻿export const INVENTORY_DEFAULT_QTY = 1;
 
 /**
- * Parse a single stored inventory cell (DB, file, sheet). Null/blank/invalid → null (unknown).
- * Important: Number(null) === 0 in JS — do not use Number() before checking null.
+ * Parse a single stored inventory cell (DB, file, sheet). Null/blank/invalid -> null (unknown).
+ * Important: Number(null) === 0 in JS - do not use Number() before checking null.
  */
 export function parseStoredInventory(raw) {
   if (raw === null || raw === undefined) return null;

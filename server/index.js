@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import Stripe from 'stripe';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -310,7 +310,7 @@ function getCheckoutReturnOrigin(req, explicitBase) {
   const fromBody = typeof explicitBase === 'string' ? normalizeOrigin(explicitBase.trim()) : '';
   if (fromBody && isAllowedReturnBase(fromBody)) return fromBody;
 
-  // GitHub Pages: Origin is only https://user.github.io — missing /repo breaks success.html.
+  // GitHub Pages: Origin is only https://user.github.io - missing /repo breaks success.html.
   // Referer is often the full page URL (includes /repo/...), so derive the site base from it.
   const fromReferer = returnBaseFromReferer(req.get('referer'));
   if (fromReferer && isAllowedReturnBase(fromReferer)) return fromReferer;
@@ -432,7 +432,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
-// ── Products — Google Sheets CSV (see server/sheet-products.js) ─────────────
+// -- Products - Google Sheets CSV (see server/sheet-products.js) --
 let _productsCache = null;
 let _productsCacheAt = 0;
 
@@ -554,7 +554,7 @@ async function decrementInventoryFromSession(session) {
   const catalogIds = new Set(products.map((p) => p.id));
 
   if (inventoryUsesSupabase()) {
-    // ── Atomic path: one SQL UPDATE per line-item, floors at 0 ──────────
+    // -- Atomic path: one SQL UPDATE per line-item, floors at 0 --
     let anyAtomic = false;
     for (const id of purchasedIds) {
       if (!catalogIds.has(id)) {
@@ -571,10 +571,10 @@ async function decrementInventoryFromSession(session) {
       invalidateProductCache();
       return { updated: true };
     }
-    // RPC not yet deployed — fall through to JS read-modify-write below
+    // RPC not yet deployed - fall through to JS read-modify-write below
   }
 
-  // ── JS read-modify-write (fallback / non-Supabase) ───────────────────
+  // -- JS read-modify-write (fallback / non-Supabase) --
   const current = await readInventoryMap(inventoryFile, readJsonFile);
   const inventory = mapInventoryForProducts(products, current);
 
@@ -594,7 +594,7 @@ async function decrementInventoryFromSession(session) {
 app.get('/api/products', async (req, res) => {
   res.set('Cache-Control', 'private, no-store, max-age=0');
   try {
-    // When Supabase is active, read directly — no caching, no merging, no write-back.
+    // When Supabase is active, read directly - no caching, no merging, no write-back.
     // catalog_sheet.inventory is the sole truth: 1 = available, 0 = sold out, NULL = sold out.
     if (inventoryUsesSupabase()) {
       const products = await fetchProductsFromCatalogSheet();
@@ -625,7 +625,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Lightweight ping — hit this every 10 min from UptimeRobot/cron-job.org to prevent cold starts
+// Lightweight ping - hit this every 10 min from UptimeRobot/cron-job.org to prevent cold starts
 app.get('/api/ping', (_req, res) => res.json({ ok: true, t: Date.now() }));
 
 app.get('/api/debug-inventory', async (_req, res) => {
@@ -636,7 +636,7 @@ app.get('/api/debug-inventory', async (_req, res) => {
       const products = await fetchProductsFromCatalogSheet();
       result.products = products.map(p => ({ id: p.id, supabaseInventory: p.sheetStock ?? null }));
     } else {
-      result.note = 'Supabase not configured — reading from Google Sheet CSV + local file';
+      result.note = 'Supabase not configured - reading from Google Sheet CSV + local file';
       const { products, inventory } = await getProductsWithInventory();
       result.products = products.map(p => ({ id: p.id, computedInventory: inventory[p.id] ?? null, sheetStock: p.sheetStock ?? null }));
     }
@@ -766,7 +766,7 @@ app.listen(port, () => {
   console.log(
     inventoryUsesSupabase()
       ? 'Inventory backend: Supabase Postgres (catalog_sheet)'
-      : 'Inventory backend: data/inventory.json — set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL or SUPABASE_PROJECT_REF',
+      : 'Inventory backend: data/inventory.json - set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL or SUPABASE_PROJECT_REF',
   );
 });
 

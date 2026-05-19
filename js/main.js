@@ -1,10 +1,10 @@
+﻿
 
+/* --
+   QORI SILVER - Main JavaScript
+   -- */
 
-/* ─────────────────────────────────────────
-   QORI SILVER — Main JavaScript
-   ───────────────────────────────────────── */
-
-/* ── Tiny helpers ── */
+/* -- Tiny helpers -- */
 function money(n) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 }
@@ -63,7 +63,7 @@ function setupImageFallbacks() {
 
 setupImageFallbacks();
 
-/* ── Mobile nav toggle ── */
+/* -- Mobile nav toggle -- */
 const navToggle = document.querySelector('.nav-toggle');
 const navLinks  = document.querySelector('.nav-links');
 
@@ -78,7 +78,7 @@ if (navToggle && navLinks) {
   });
 }
 
-/* ── Sticky nav — always light (parchment) ── */
+/* -- Sticky nav - always light (parchment) -- */
 const navbar = document.querySelector('.navbar');
 window.addEventListener('scroll', () => {
   if (!navbar) return;
@@ -87,7 +87,7 @@ window.addEventListener('scroll', () => {
     : 'rgba(255,252,248,0.97)';
 });
 
-/* ── Page Tabs ── */
+/* -- Page Tabs -- */
 function activateTab(tabId) {
   document.querySelectorAll('.page-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.tab === tabId));
@@ -95,7 +95,7 @@ function activateTab(tabId) {
     p.classList.toggle('active', p.id === 'tab-' + tabId));
   history.replaceState(null, '', '#' + tabId);
 
-  // Init carousels only once per panel — skip if already done
+  // Init carousels only once per panel - skip if already done
   const panel = document.getElementById('tab-' + tabId);
   if (panel && !panel.dataset.carouselsReady) {
     panel.querySelectorAll('.pieces-grid').forEach(g => initCarousels(g));
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (['shop','craftsmanship','about'].includes(hash)) activateTab(hash);
 });
 
-/* ── Lightbox ── */
+/* -- Lightbox -- */
 document.addEventListener('DOMContentLoaded', () => {
   const lb = document.getElementById('lightbox');
   if (!lb) return;
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* ── Smooth reveal on scroll ── */
+/* -- Smooth reveal on scroll -- */
 const revealElements = document.querySelectorAll(
   '.col-card, .piece, .cb, .sec-title, .eyebrow'
 );
@@ -204,7 +204,7 @@ const style = document.createElement('style');
 style.textContent = '.revealed { opacity: 1 !important; transform: translateY(0) !important; }';
 document.head.appendChild(style);
 
-/* ── Cart (MVP) ── */
+/* -- Cart (MVP) -- */
 const cartBtn = document.querySelector('.nav-cart');
 
 const cartDrawer = document.querySelector('[data-cart-drawer]');
@@ -273,7 +273,7 @@ async function loadStripeMode() {
 
 function getServerInventory(productId) {
   if (!inventoryFromApiReady) return null;
-  if (!inventoryById.has(productId)) return null; // unknown → don't show sold-out
+  if (!inventoryById.has(productId)) return null; // unknown -> don't show sold-out
   const raw = inventoryById.get(productId);
   if (raw === Number.POSITIVE_INFINITY) return Number.POSITIVE_INFINITY;
   const n = Number(raw);
@@ -350,7 +350,7 @@ async function loadInventory(preloadedProducts) {
   inventoryLoadFailed = false;
 
   // Only catch errors during the data-loading phase.
-  // Post-processing (reconcile, apply) must NOT be inside this try-catch —
+  // Post-processing (reconcile, apply) must NOT be inside this try-catch -
   // a crash there would wrongly set inventoryLoadFailed and show "Unavailable" everywhere.
   let products;
   try {
@@ -491,10 +491,10 @@ function renderCart(cart) {
     <div class="cart-item" data-cart-item="${it.id}">
       <div class="cart-item-main">
         <div class="cart-item-name">${it.name}</div>
-        <div class="cart-item-meta">${money(it.price)} · <span class="muted">each</span></div>
+        <div class="cart-item-meta">${money(it.price)}  <span class="muted">each</span></div>
       </div>
       <div class="cart-item-controls">
-        <button class="qty-btn" type="button" data-cart-dec data-id="${it.id}" aria-label="Decrease quantity">−</button>
+        <button class="qty-btn" type="button" data-cart-dec data-id="${it.id}" aria-label="Decrease quantity"></button>
         <div class="qty">${it.qty}</div>
         <button class="qty-btn" type="button" data-cart-inc data-id="${it.id}" aria-label="Increase quantity">+</button>
         <button class="remove-btn" type="button" data-cart-remove data-id="${it.id}">Remove</button>
@@ -539,7 +539,7 @@ async function startStripeCheckout(cart) {
       }
     }
   } catch {
-    // Stock check failed — proceed anyway; Stripe will catch inventory issues server-side
+    // Stock check failed - proceed anyway; Stripe will catch inventory issues server-side
   }
 
   const items = (cart?.items ?? []).map(it => ({
@@ -600,7 +600,7 @@ document.addEventListener('click', (e) => {
   }
 
   if (!inventoryFromApiReady) {
-    alert(inventoryLoadFailed ? 'Could not load stock. Please refresh the page.' : 'Still loading availability — try again in a moment.');
+    alert(inventoryLoadFailed ? 'Could not load stock. Please refresh the page.' : 'Still loading availability - try again in a moment.');
     return;
   }
   const id = (el.getAttribute('data-product-id') ?? 'test-item').trim();
@@ -677,6 +677,6 @@ document.addEventListener('qori:shop-products-rendered', (e) => {
   loadInventory(e.detail?.products);
 });
 
-/* ── Console welcome ── */
+/* -- Console welcome -- */
 console.log('%cQori Silver', 'font-size:1.4rem;color:#C9A84C;font-family:serif');
-console.log('%cHandcrafted in Cusco, Peru · Sterling .95', 'color:#4EC9B0;font-size:.85rem');
+console.log('%cHandcrafted in Cusco, Peru  Sterling .95', 'color:#4EC9B0;font-size:.85rem');

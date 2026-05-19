@@ -1,4 +1,4 @@
-/** Default public CSV export (override with env SHEET_CSV_URL). */
+﻿/** Default public CSV export (override with env SHEET_CSV_URL). */
 export const DEFAULT_SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/1aaO-kSnl6fonfOcFhUkl3jNNDLF5_iWgxxFZtLviiZU/export?format=csv';
 
@@ -129,7 +129,7 @@ export function parseProducts(csv) {
       : r.type;
 
     const category = r.type.startsWith('Earring') ? 'Earrings' : 'Chains';
-    const mat = [r.weight ? `${r.weight}g` : '', r.length || ''].filter(Boolean).join(' · ') || 'Sterling silver .925';
+    const mat = [r.weight ? `${r.weight}g` : '', r.length || ''].filter(Boolean).join('  ') || 'Sterling silver .925';
 
     const product = {
       id: `product-${r._n}`,

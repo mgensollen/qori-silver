@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { parseStoredInventory } from './inventory-merge.js';
 
 let _client;
@@ -55,7 +55,7 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
   }
   const sb = getClient();
 
-  // ── Try catalog_sheet (site_product_id, inventory) ──────────────────────
+  // -- Try catalog_sheet (site_product_id, inventory) --
   try {
     const { data, error } = await sb
       .from('catalog_sheet')
@@ -70,7 +70,7 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
         if (parsed === null) continue;
         out[id] = parsed;
       }
-      // catalog_sheet is authoritative whenever it returned rows — even if `out` is empty
+      // catalog_sheet is authoritative whenever it returned rows - even if `out` is empty
       // (e.g. NULL inventory cells). Do not fall through to product_inventory in that case.
       return out;
     }
@@ -78,7 +78,7 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
     console.warn('inventory-store: catalog_sheet read failed:', e?.message);
   }
 
-  // ── Fall back to product_inventory (id, quantity) ────────────────────────
+  // -- Fall back to product_inventory (id, quantity) --
   try {
     const { data, error } = await sb
       .from('product_inventory')
@@ -102,14 +102,14 @@ export async function readInventoryMap(inventoryFilePath, readJsonFile) {
     console.warn('inventory-store: product_inventory read failed:', e?.message);
   }
 
-  // ── Last resort: local file ──────────────────────────────────────────────
+  // -- Last resort: local file --
   console.warn('inventory-store: Supabase reads failed, falling back to local file');
   return readJsonFile(inventoryFilePath, {});
 }
 
 /**
  * Write updated inventory back to Supabase.
- * Mirrors the same priority: catalog_sheet → product_inventory → file.
+ * Mirrors the same priority: catalog_sheet -> product_inventory -> file.
  */
 export async function writeInventoryMap(inventoryFilePath, inventory, writeJsonFile) {
   if (!inventoryUsesSupabase()) {
@@ -120,7 +120,7 @@ export async function writeInventoryMap(inventoryFilePath, inventory, writeJsonF
   const entries = Object.entries(inventory);
   if (!entries.length) return;
 
-  // ── Try catalog_sheet ────────────────────────────────────────────────────
+  // -- Try catalog_sheet --
   try {
     const { count, error: cntErr } = await sb
       .from('catalog_sheet')
@@ -140,7 +140,7 @@ export async function writeInventoryMap(inventoryFilePath, inventory, writeJsonF
     console.warn('inventory-store: catalog_sheet write failed:', e?.message);
   }
 
-  // ── Fall back to product_inventory ───────────────────────────────────────
+  // -- Fall back to product_inventory --
   try {
     for (const [id, qty] of entries) {
       const q = Math.max(0, Math.floor(Number(qty) || 0));
@@ -157,7 +157,7 @@ export async function writeInventoryMap(inventoryFilePath, inventory, writeJsonF
     console.warn('inventory-store: product_inventory write failed:', e?.message);
   }
 
-  // ── Last resort ──────────────────────────────────────────────────────────
+  // -- Last resort --
   await writeJsonFile(inventoryFilePath, inventory);
 }
 
@@ -171,7 +171,7 @@ export async function decrementInventoryItem(siteProductId, qty = 1) {
   const sb = getClient();
   const safeQty = Math.max(1, Math.floor(Number(qty) || 1));
 
-  // ── Try atomic RPC on catalog_sheet ─────────────────────────────────────
+  // -- Try atomic RPC on catalog_sheet --
   try {
     const { error } = await sb.rpc('decrement_catalog_inventory', {
       p_id: siteProductId,
@@ -187,7 +187,7 @@ export async function decrementInventoryItem(siteProductId, qty = 1) {
     }
   } catch {}
 
-  // ── Try atomic RPC on product_inventory (legacy) ─────────────────────────
+  // -- Try atomic RPC on product_inventory (legacy) --
   try {
     const { error } = await sb.rpc('decrement_product_inventory', {
       p_id: siteProductId,

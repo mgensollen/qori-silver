@@ -1,4 +1,4 @@
-import fs from 'fs/promises';
+﻿import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { inventoryUsesSupabase, readInventoryMap } from './inventory-store.js';
@@ -21,7 +21,7 @@ async function readJsonFile(filePath, fallbackValue) {
 }
 
 /**
- * Google Sheet → Supabase. Keeps current Supabase inventory (and merged item_name logic in upsert).
+ * Google Sheet -> Supabase. Keeps current Supabase inventory (and merged item_name logic in upsert).
  */
 export async function runPullCatalogFromGoogleSheet() {
   if (!inventoryUsesSupabase()) {
@@ -32,7 +32,7 @@ export async function runPullCatalogFromGoogleSheet() {
 }
 
 /**
- * Supabase → Google Sheet inventory column (requires GOOGLE_SERVICE_ACCOUNT_JSON).
+ * Supabase -> Google Sheet inventory column (requires GOOGLE_SERVICE_ACCOUNT_JSON).
  */
 export async function runPushInventoryToGoogleSheet() {
   return pushInventoryToGoogleSheet();

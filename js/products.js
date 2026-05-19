@@ -1,7 +1,7 @@
-/* ──────────────────────────────────────────
-   QORI SILVER — Product grids from /api/products
+﻿/* --
+   QORI SILVER - Product grids from /api/products
    Order matches Supabase catalog_sheet (row_number). IDs + inventory match the table.
-   ────────────────────────────────────────── */
+   -- */
 
 const CAT_COLOR = {
   Chains: 'var(--teal-lt)',
@@ -78,7 +78,7 @@ function buildPieceCard(p, linkBase) {
   const mat = esc(p.material || '');
 
   // Set sold-out state directly from the API inventory value at render time.
-  // This means the correct state is visible immediately — no async JS required.
+  // This means the correct state is visible immediately - no async JS required.
   const invNum = Number(p.inventory);
   const soldOut = Number.isFinite(invNum) && invNum <= 0;
 
@@ -111,7 +111,7 @@ function initCarousels(container) {
     if (!track || total === 0) return;
 
     // Force slide heights to match the container in pixels.
-    // CSS percentage-height chains are unreliable on iOS Safari — reading
+    // CSS percentage-height chains are unreliable on iOS Safari - reading
     // offsetHeight gives the real rendered pixel value with no ambiguity.
     function syncHeights() {
       const h = el.offsetHeight;
@@ -155,7 +155,7 @@ function applyShopItemListLd(products) {
   const itemListElement = products.map((p, i) => {
     const slug = typeof p.slug === 'string' && p.slug.trim() ? p.slug.trim() : '';
     const pdp = slug ? `${CANONICAL_ORIGIN}/products/${slug}.html` : `${CANONICAL_ORIGIN}/shop.html`;
-    const desc = [p.material, p.category ? `${p.category} · Qori Silver` : 'Qori Silver'].filter(Boolean).join(' · ');
+    const desc = [p.material, p.category ? `${p.category}  Qori Silver` : 'Qori Silver'].filter(Boolean).join('  ');
     const priceStr = Number.isFinite(Number(p.price)) ? Number(p.price).toFixed(2) : '0.00';
     return {
       '@type': 'ListItem',
@@ -214,7 +214,7 @@ function applyHomeCollectionItemListLd(products) {
   }
 }
 
-/* ── Product cache (stale-while-revalidate) ── */
+/* -- Product cache (stale-while-revalidate) -- */
 const PRODUCTS_CACHE_KEY = 'qori_products_v1';
 const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 min
 
@@ -245,7 +245,7 @@ async function hydrateProductGrid(grid) {
   const apiBase = (window.QORI_API_BASE || '').replace(/\/$/, '');
   const linkBase = (grid.getAttribute('data-qori-product-link-base') || 'products/').trim() || 'products/';
 
-  // Show cached products immediately — page feels instant on repeat visits
+  // Show cached products immediately - page feels instant on repeat visits
   const cached = readProductsCache();
   if (cached && cached.length > 0) {
     renderGridProducts(grid, cached, linkBase);
@@ -275,7 +275,7 @@ async function hydrateProductGrid(grid) {
   } catch (err) {
     console.error('Product grid load failed:', err);
     if (!grid.dataset.qoriProductsReady) {
-      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products — please refresh.</p>';
+      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products - please refresh.</p>';
     }
   }
 }

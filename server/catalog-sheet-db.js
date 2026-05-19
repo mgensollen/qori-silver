@@ -1,4 +1,4 @@
-import { getSupabaseClient, inventoryUsesSupabase } from './inventory-store.js';
+﻿import { getSupabaseClient, inventoryUsesSupabase } from './inventory-store.js';
 import { parseStoredInventory } from './inventory-merge.js';
 import { parseCatalogSheetUpsertRows, parseImages, parseSheetPrice, sheetCsvUrl } from './sheet-products.js';
 import { websiteItemNameForProductId } from './item-names.js';
@@ -48,7 +48,7 @@ function catalogRowsToProducts(rows) {
     const category = type.startsWith('Earring') ? 'Earrings' : 'Chains';
     const wg = row.weight_grams || '';
     const li = row.length_inches || '';
-    const mat = [wg ? `${wg}g` : '', li || ''].filter(Boolean).join(' · ') || 'Sterling silver .925';
+    const mat = [wg ? `${wg}g` : '', li || ''].filter(Boolean).join('  ') || 'Sterling silver .925';
 
     const price =
       parseSheetPrice(row.list_price)
@@ -56,7 +56,7 @@ function catalogRowsToProducts(rows) {
       || parseSheetPrice(row.total_price_paid_usd)
       || 0;
 
-    // NULL / blank must stay unknown — Number(null) is 0 and would false "sold out" sitewide.
+    // NULL / blank must stay unknown - Number(null) is 0 and would false "sold out" sitewide.
     const sheetStock = parseStoredInventory(row.inventory);
 
     const product = {

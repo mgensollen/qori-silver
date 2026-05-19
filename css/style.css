@@ -1,24 +1,24 @@
-/* ═══════════════════════════════════════════════════
-   QORI SILVER — Andean Parchment v4
+﻿/* ===
+   QORI SILVER - Andean Parchment v4
    Light editorial. Premium jewelry aesthetic.
    Gold + dark brown on warm cream. Dark footer.
-   ═══════════════════════════════════════════════════ */
+   === */
 
-/* ── DESIGN TOKENS ── */
+/* -- DESIGN TOKENS -- */
 :root {
   /* Andean Parchment surfaces */
-  --page:         #F6EFE3;   /* main background — aged parchment */
+  --page:         #F6EFE3;   /* main background - aged parchment */
   --surface:      #FFFCF8;   /* white-ish for elevated cards */
   --surface2:     #EDE5D4;   /* deeper cream for alt sections */
   --surface3:     #E4D9C4;   /* band / border backgrounds */
 
-  /* Text — dark warm brown */
+  /* Text - dark warm brown */
   --ink:          #1C1208;
   --ink2:         rgba(28, 18, 8, 0.65);
   --ink3:         rgba(28, 18, 8, 0.40);
   --ink4:         rgba(28, 18, 8, 0.18);
 
-  /* Gold — deeper for light backgrounds */
+  /* Gold - deeper for light backgrounds */
   --gold:         #9E7418;
   --gold-lt:      #B8922A;
   --gold-bright:  #C9A84C;
@@ -39,7 +39,7 @@
   --crimson-lt:   #C84830;
   --jade-lt:      #3A8040;
 
-  /* Legacy aliases — used by inline HTML styles */
+  /* Legacy aliases - used by inline HTML styles */
   --dark:         #1C1208;
   --dark2:        #2A1A0A;
   --dark3:        #3A2410;
@@ -56,7 +56,7 @@
   --purple-lt:    #A47ED6;
 }
 
-/* ── RESET ── */
+/* -- RESET -- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; font-size: 16px; }
 body {
@@ -77,7 +77,7 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   touch-action: manipulation;
 }
 
-/* ── TYPOGRAPHY ── */
+/* -- TYPOGRAPHY -- */
 .sec-label {
   font-family: 'Cinzel', serif;
   font-size: 0.6rem !important;
@@ -122,7 +122,7 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   margin-bottom: 1.5rem;
 }
 
-/* ── BUTTONS ── */
+/* -- BUTTONS -- */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -185,12 +185,12 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   gap: 0.6rem;
   transition: color 0.3s;
 }
-.link-arrow::after { content: '→'; }
+.link-arrow::after { content: '->'; }
 .link-arrow:hover { color: var(--ink); }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    NAVBAR
-   ═══════════════════════════════════════════════════ */
+   === */
 .navbar {
   display: flex;
   align-items: center;
@@ -216,7 +216,7 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
 }
 .logo span { color: #8A9EAE; font-weight: 600; }  /* SILVER = metallic silver */
 
-/* Footer logo override — on dark bg */
+/* Footer logo override - on dark bg */
 .ft-brand .logo { color: #F4EDE2; }
 .ft-brand .logo span { color: var(--gold-bright); }
 
@@ -279,9 +279,9 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   gap: 1rem;
 }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    HERO
-   ═══════════════════════════════════════════════════ */
+   === */
 .hero {
   position: relative;
   min-height: 90vh;
@@ -302,7 +302,7 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   z-index: 0;
 }
 
-/* Parchment gradient overlay — opaque on left (text), clears on right (video) */
+/* Parchment gradient overlay - opaque on left (text), clears on right (video) */
 .hero-bg {
   position: absolute;
   inset: 0;
@@ -327,7 +327,7 @@ a, button, [data-tab-target], [data-cart-open], [data-cart-close],
   max-width: 580px;
 }
 
-/* Hide the SVG placeholder — real video is now the visual */
+/* Hide the SVG placeholder - real video is now the visual */
 .hero-medallion { display: none; }
 
 .eyebrow {
@@ -392,9 +392,9 @@ h1 em {
   filter: blur(0.5px);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    TICKER
-   ═══════════════════════════════════════════════════ */
+   === */
 .ticker {
   display: flex;
   overflow: hidden;
@@ -432,9 +432,9 @@ h1 em {
   white-space: nowrap;
 }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    PAGE TABS
-   ═══════════════════════════════════════════════════ */
+   === */
 .page-tabs {
   display: flex;
   background: var(--surface);
@@ -471,9 +471,9 @@ h1 em {
   .tab-short { display: inline; }
 }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    LIGHTBOX
-   ═══════════════════════════════════════════════════ */
+   === */
 .lightbox {
   display: none;
   position: fixed; inset: 0;
@@ -537,9 +537,9 @@ h1 em {
 /* Placeholder SVG (no images): fill the container absolutely */
 .piece-img > svg, .shop-img > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    FEATURED PIECES
-   ═══════════════════════════════════════════════════ */
+   === */
 .pieces {
   background: var(--page);
   padding: 7rem clamp(1.5rem, 5vw, 4rem);
@@ -567,10 +567,10 @@ h1 em {
 
 .piece { cursor: pointer; }
 
-/* White product image containers — jewelry pops on white */
+/* White product image containers - jewelry pops on white */
 .piece-img {
   background: #FFFFFF;
-  /* padding-top creates the aspect ratio — works on all browsers including iOS Safari.
+  /* padding-top creates the aspect ratio - works on all browsers including iOS Safari.
      aspect-ratio on a block with only abs-positioned children collapses to 0 in Safari. */
   display: block;
   width: 100%;
@@ -692,9 +692,9 @@ h1 em {
   color: var(--ink3);
 }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    STORY / ABOUT
-   ═══════════════════════════════════════════════════ */
+   === */
 .story {
   background: var(--surface2);
   padding: 7rem clamp(1.5rem, 5vw, 4rem);
@@ -745,9 +745,9 @@ h1 em {
 .story-card a { color: var(--gold); transition: color 0.2s; }
 .story-card a:hover { color: var(--ink); }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    LEGACY SECTIONS
-   ═══════════════════════════════════════════════════ */
+   === */
 .collections { background: var(--surface2); padding: 7rem clamp(1.5rem,5vw,4rem); }
 .col-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3.5rem; }
 .col-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1.5rem; min-width: 0; }
@@ -781,9 +781,9 @@ h1 em {
 .split-text { background: var(--surface); padding: 6rem 5rem; display: flex; flex-direction: column; justify-content: center; }
 blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var(--ink); line-height: 1.85; margin: 1.8rem 0; padding-left: 1.6rem; border-left: 2px solid var(--gold); }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    CART DRAWER
-   ═══════════════════════════════════════════════════ */
+   === */
 .muted { color: var(--ink3); }
 
 .cart-overlay {
@@ -900,9 +900,9 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 .stripe-mode-badge.is-test { color: var(--crimson-lt); border-color: rgba(200,72,48,0.35); background: rgba(200,72,48,0.06); }
 .stripe-mode-badge.is-live { color: var(--jade-lt); border-color: rgba(58,128,64,0.35); background: rgba(58,128,64,0.06); }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    CHECKOUT MODAL
-   ═══════════════════════════════════════════════════ */
+   === */
 .checkout-modal-overlay {
   position: fixed; inset: 0;
   background: rgba(28,18,8,0.55);
@@ -947,9 +947,9 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 .checkout-cta { margin-top: 1.3rem; width: 100%; justify-content: center; }
 .checkout-note { margin-top: 0.8rem; color: var(--ink3); font-size: 0.9rem; }
 
-/* ═══════════════════════════════════════════════════
+/* ===
    SHOP PAGE
-   ═══════════════════════════════════════════════════ */
+   === */
 .shop-hero {
   background: var(--surface2);
   padding: 6rem clamp(1.5rem,5vw,4rem) 3rem;
@@ -989,13 +989,13 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   width: 100%;
   max-width: 100%;
   height: 0;
-  padding-top: 100%; /* 1:1 — same padding-top technique as .piece-img */
+  padding-top: 100%; /* 1:1 - same padding-top technique as .piece-img */
   position: relative;
   overflow: hidden;
   min-width: 0;
 }
 
-/* ── CAROUSEL ── */
+/* -- CAROUSEL -- */
 .shop-img[data-carousel],
 .piece-img[data-carousel] {
   display: block;
@@ -1004,8 +1004,8 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   max-width: 100%;
   min-width: 0;
 }
-/* Track: absolutely positioned — its height = piece-img height.
-   NO overflow:hidden here — when the track transforms, its clip rect moves
+/* Track: absolutely positioned - its height = piece-img height.
+   NO overflow:hidden here - when the track transforms, its clip rect moves
    with it, making slides 2+ permanently invisible. piece-img clips instead. */
 .shop-img[data-carousel] > .carousel-track,
 .piece-img[data-carousel] > .carousel-track {
@@ -1030,7 +1030,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   width: 100%;
   overflow: hidden;
 }
-/* Images: fill their slide absolutely — both containing block dimensions are
+/* Images: fill their slide absolutely - both containing block dimensions are
    definite (slide gets width from parent, height from top:0/bottom:0). */
 .carousel-slide img,
 .shop-img > img,
@@ -1078,9 +1078,9 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 
 .shop-meta { padding: 1.5rem 1.4rem 1.8rem; }
 
-/* ═══════════════════════════════════════════════════
-   SEO — breadcrumbs, product detail pages, visible brand line
-   ═══════════════════════════════════════════════════ */
+/* ===
+   SEO - breadcrumbs, product detail pages, visible brand line
+   === */
 .hero-brand-line {
   font-family: 'Cinzel', serif;
   font-size: clamp(0.62rem, 1.4vw, 0.72rem);
@@ -1196,9 +1196,9 @@ a.piece-name-link:hover {
   }
 }
 
-/* ═══════════════════════════════════════════════════
-   FOOTER — dark contrast base (classic premium pattern)
-   ═══════════════════════════════════════════════════ */
+/* ===
+   FOOTER - dark contrast base (classic premium pattern)
+   === */
 footer {
   background: var(--footer-bg);
   padding: 5.5rem clamp(1.5rem,5vw,4rem) 2.5rem;
@@ -1244,9 +1244,9 @@ footer {
 .ft-copy { font-size: 0.72rem; font-weight: 300; color: rgba(246,239,227,0.22); }
 .ft-copy.accent { color: rgba(184,146,42,0.4); }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 1024px
-   ═══════════════════════════════════════════════════ */
+/* ===
+   RESPONSIVE - 1024px
+   === */
 @media (max-width: 1024px) {
   .col-grid { grid-template-columns: 1fr 1fr; }
   .col-card.feat { grid-column: 1 / -1; }
@@ -1257,9 +1257,9 @@ footer {
   .story-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 768px
-   ═══════════════════════════════════════════════════ */
+/* ===
+   RESPONSIVE - 768px
+   === */
 @media (max-width: 768px) {
   .nav-links { display: none; }
   .nav-links.open {
@@ -1273,7 +1273,7 @@ footer {
   }
   .nav-toggle { display: flex; align-items: center; justify-content: center; }
 
-  /* ── Navbar mobile: logo left, nav-right stacked on right ── */
+  /* -- Navbar mobile: logo left, nav-right stacked on right -- */
   .navbar { justify-content: flex-start; padding: 0.75rem 1rem; }
   .nav-right {
     margin-left: auto;
@@ -1292,10 +1292,10 @@ footer {
     font-size: 0.52rem;
     padding: 0.22rem 0.6rem;
     letter-spacing: 0.1em;
-    transform: none !important; /* no lift on mobile — stays in navbar */
+    transform: none !important; /* no lift on mobile - stays in navbar */
   }
 
-  /* ── Hero: static Machu Picchu image replaces video ── */
+  /* -- Hero: static Machu Picchu image replaces video -- */
   .hero-video { display: none; }
   .hero {
     background: var(--page)
@@ -1348,9 +1348,9 @@ footer {
   .ft-brand { grid-column: 1 / -1; }
 }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE — 480px
-   ═══════════════════════════════════════════════════ */
+/* ===
+   RESPONSIVE - 480px
+   === */
 @media (max-width: 480px) {
   h1 { font-size: clamp(2.4rem, 10vw, 3.2rem); }
   h1 em { font-size: clamp(1.4rem, 5.5vw, 1.9rem); }
@@ -1367,7 +1367,7 @@ footer {
   .pieces { padding: 4rem 1.2rem; }
   .pieces-grid { grid-template-columns: 1fr; gap: 2rem; }
   /* Explicit height avoids padding-top % chain which Safari resolves unreliably.
-     (100vw - 2.4rem) = card width on 1-column grid; ×1.25 = 4:5 portrait ratio. */
+     (100vw - 2.4rem) = card width on 1-column grid; 1.25 = 4:5 portrait ratio. */
   .piece-img { height: calc((100vw - 2.4rem) * 1.25); padding-top: 0; }
   .piece-add { min-height: 50px; font-size: 0.65rem; padding: 1rem; }
 

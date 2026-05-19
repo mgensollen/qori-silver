@@ -60,7 +60,9 @@
       "Bash(Select-Object FullName)",
       "Bash(find \"c:\\\\Users\\\\marco\\\\Downloads\\\\qori-silver\" -type f \\\\\\( -name \"*.html\" -o -name \"*.json\" \\\\\\) | head -20)",
       "Read(//c/Users/marco/Downloads/qori-silver/**)",
-      "Bash(xargs sed -i 's/v=20260511-20/v=20260515-01/g')"
+      "Bash(xargs sed -i 's/v=20260511-20/v=20260515-01/g')",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\marco\\\\Downloads\\\\qori-silver\"; $files = @\\(\"cancel.html\",\"care.html\",\"index.html\",\"inventory.html\",\"shipping.html\",\"shop.html\",\"success.html\",\"products/amaru-curb-necklace-bracelet.html\",\"products/chakana-cross-earrings.html\",\"products/inti-heavy-curb-set.html\",\"products/inti-solar-disc-earrings.html\",\"products/killa-curb-necklace.html\",\"products/pachamama-clover-necklace.html\",\"products/qori-figaro-necklace.html\"\\); foreach \\($f in $files\\) { $content = Get-Content $f -Raw; $updated = $content -replace 'v=20260517-04','v=20260519-01'; Set-Content $f $updated -NoNewline -Encoding utf8 }; Write-Host \"Done\")",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\marco\\\\Downloads\\\\qori-silver\"; $files = @\\(\"cancel.html\",\"care.html\",\"index.html\",\"inventory.html\",\"shipping.html\",\"shop.html\",\"success.html\",\"products/amaru-curb-necklace-bracelet.html\",\"products/chakana-cross-earrings.html\",\"products/inti-heavy-curb-set.html\",\"products/inti-solar-disc-earrings.html\",\"products/killa-curb-necklace.html\",\"products/pachamama-clover-necklace.html\",\"products/qori-figaro-necklace.html\"\\); foreach \\($f in $files\\) { $content = Get-Content $f -Raw; $updated = $content -replace 'v=20260519-01','v=20260519-02'; Set-Content $f $updated -NoNewline -Encoding utf8 }; Write-Host \"Done\")"
     ]
   }
 }
