@@ -1,4 +1,4 @@
-﻿/* ===
+/* ===
    QORI SILVER - Andean Parchment v4
    Light editorial. Premium jewelry aesthetic.
    Gold + dark brown on warm cream. Dark footer.
@@ -1030,8 +1030,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   width: 100%;
   overflow: hidden;
 }
-/* Images: fill their slide absolutely - both containing block dimensions are
-   definite (slide gets width from parent, height from top:0/bottom:0). */
+/* Images: scale to show the full photo inside the frame (no cropping). */
 .carousel-slide img,
 .shop-img > img,
 .piece-img > img {
@@ -1039,7 +1038,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   display: block;
 }

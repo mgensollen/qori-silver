@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
-const FROM = '20260519-07';
-const TO = '20260521-pdp';
+const FROM = '20260521-pdp';
+const TO = '20260521-img';
 
 function walk(dir, out = []) {
   for (const name of fs.readdirSync(dir)) {
@@ -29,7 +29,11 @@ for (const file of walk(root)) {
     .replaceAll(`js/main.js?v=${FROM}`, `js/main.js?v=${TO}`)
     .replaceAll(`js/products.js?v=${FROM}`, `js/products.js?v=${TO}`)
     .replaceAll(`../js/main.js?v=${FROM}`, `../js/main.js?v=${TO}`)
-    .replaceAll(`../js/products.js?v=${FROM}`, `../js/products.js?v=${TO}`);
+    .replaceAll(`../js/products.js?v=${FROM}`, `../js/products.js?v=${TO}`)
+    .replaceAll(`css/style.css?v=${FROM}`, `css/style.css?v=${TO}`)
+    .replaceAll(`../css/style.css?v=${FROM}`, `../css/style.css?v=${TO}`)
+    .replaceAll(`css/style.css?v=20260519-07`, `css/style.css?v=${TO}`)
+    .replaceAll(`../css/style.css?v=20260519-07`, `../css/style.css?v=${TO}`);
   if (next !== html) {
     fs.writeFileSync(file, next);
     console.log('bumped', path.relative(root, file));
