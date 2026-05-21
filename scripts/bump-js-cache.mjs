@@ -8,8 +8,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
-const FROM = '20260521-pdp';
-const TO = '20260521-img';
+const FROM = '20260521-img';
+const TO = '20260521-bg';
 
 function walk(dir, out = []) {
   for (const name of fs.readdirSync(dir)) {

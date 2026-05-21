@@ -567,9 +567,9 @@ h1 em {
 
 .piece { cursor: pointer; }
 
-/* White product image containers - jewelry pops on white */
+/* Product image frames match site parchment so letterboxing blends in */
 .piece-img {
-  background: #FFFFFF;
+  background: var(--page);
   /* padding-top creates the aspect ratio - works on all browsers including iOS Safari.
      aspect-ratio on a block with only abs-positioned children collapses to 0 in Safari. */
   display: block;
@@ -984,7 +984,7 @@ blockquote { font-size: 1.4rem; font-style: italic; font-weight: 300; color: var
 }
 
 .shop-img {
-  background: #FFFFFF;
+  background: var(--page);
   display: block;
   width: 100%;
   max-width: 100%;
