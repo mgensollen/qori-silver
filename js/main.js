@@ -1,4 +1,4 @@
-﻿
+
 
 /* --
    QORI SILVER - Main JavaScript
@@ -668,7 +668,8 @@ document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) =>
   });
 });
 
-if (!document.querySelector('[data-qori-products]')) {
+/* Inventory comes from the shared /api/products catalog (products.js) on shop/home/PDP pages. */
+if (!document.querySelector('[data-qori-products], [data-qori-product-detail]')) {
   loadInventory();
 }
 loadStripeMode();

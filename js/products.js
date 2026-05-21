@@ -1,4 +1,4 @@
-﻿/* --
+/* --
    QORI SILVER - Product grids from /api/products
    Order matches Supabase catalog_sheet (row_number). IDs + inventory match the table.
    -- */
@@ -67,11 +67,19 @@ ${dots}
         </div>`;
 }
 
-function buildPieceCard(p, linkBase) {
+function productHref(p, linkBase) {
   const base = (linkBase || 'products/').replace(/\/?$/, '/');
-  const slug = typeof p.slug === 'string' && p.slug.trim() ? p.slug.trim() : '';
-  const nameHtml = slug
-    ? `<div class="piece-name"><a class="piece-name-link" href="${esc(base)}${esc(slug)}.html">${esc(p.name)}</a></div>`
+  const slug = productSlug(p);
+  if (!slug) return '';
+  const id = typeof p.id === 'string' && p.id.trim() ? p.id.trim() : '';
+  const qs = id ? `?id=${encodeURIComponent(id)}` : '';
+  return `${base}${slug}.html${qs}`;
+}
+
+function buildPieceCard(p, linkBase) {
+  const href = productHref(p, linkBase);
+  const nameHtml = href
+    ? `<div class="piece-name"><a class="piece-name-link" href="${esc(href)}">${esc(p.name)}</a></div>`
     : `<div class="piece-name">${esc(p.name)}</div>`;
   const catColor = CAT_COLOR[p.category] || 'var(--gold)';
   const price = formatPrice(p.price);
@@ -214,9 +222,11 @@ function applyHomeCollectionItemListLd(products) {
   }
 }
 
-/* -- Product cache (stale-while-revalidate) -- */
-const PRODUCTS_CACHE_KEY = 'qori_products_v1';
+/* -- Shared product catalog (homepage grid + product pages) -- */
+const PRODUCTS_CACHE_KEY = 'qori_products_v2';
+const SELECTED_PRODUCT_KEY = 'qori_selected_product_v1';
 const PRODUCTS_CACHE_TTL = 5 * 60 * 1000; // 5 min
+let catalogFetchPromise = null;
 
 function readProductsCache() {
   try {
@@ -232,50 +242,289 @@ function writeProductsCache(products) {
   try { localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ at: Date.now(), products })); } catch {}
 }
 
+function notifyProductsReady(products) {
+  document.dispatchEvent(new CustomEvent('qori:shop-products-rendered', { detail: { products } }));
+}
+
+async function fetchProductsFromApi() {
+  const apiBase = (window.QORI_API_BASE || '').replace(/\/$/, '');
+  const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const products = await res.json();
+  if (!Array.isArray(products)) throw new Error('Invalid products payload');
+  return products;
+}
+
+/** One in-flight request; returns cache immediately when available (SWR). */
+async function loadProductsCatalog() {
+  const cached = readProductsCache();
+
+  const runFetch = () => {
+    if (!catalogFetchPromise) {
+      catalogFetchPromise = fetchProductsFromApi()
+        .then((products) => {
+          writeProductsCache(products);
+          return products;
+        })
+        .finally(() => { catalogFetchPromise = null; });
+    }
+    return catalogFetchPromise;
+  };
+
+  if (cached?.length) {
+    runFetch()
+      .then((fresh) => {
+        if (JSON.stringify(cached) !== JSON.stringify(fresh)) {
+          document.dispatchEvent(new CustomEvent('qori:products-catalog-changed', { detail: { products: fresh } }));
+        }
+      })
+      .catch((err) => console.error('Product catalog refresh failed:', err));
+    return cached;
+  }
+
+  return runFetch();
+}
+
+function slugFromPagePath() {
+  const m = (window.location.pathname || '').match(/\/([^/]+)\.html$/i);
+  return m ? m[1] : '';
+}
+
+function productSlug(p) {
+  return typeof p.slug === 'string' && p.slug.trim() ? p.slug.trim() : '';
+}
+
+function resolveDetailTarget(root) {
+  const params = new URLSearchParams(window.location.search);
+  const id = (params.get('id') || '').trim();
+  const slugAttr = (root.getAttribute('data-qori-product-slug') || '').trim();
+  const slug = slugAttr || slugFromPagePath();
+  return { id, slug };
+}
+
+function findProductForDetail(products, { id, slug }) {
+  if (!Array.isArray(products)) return null;
+  if (id) {
+    const byId = products.find((x) => x.id === id);
+    if (byId) return byId;
+  }
+  if (slug) return products.find((x) => productSlug(x) === slug) || null;
+  return null;
+}
+
+function saveSelectedProduct(p) {
+  try { sessionStorage.setItem(SELECTED_PRODUCT_KEY, JSON.stringify(p)); } catch {}
+}
+
+function readSelectedProduct(id, slug) {
+  try {
+    const raw = sessionStorage.getItem(SELECTED_PRODUCT_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (!p || typeof p !== 'object') return null;
+    if (id && p.id === id) return p;
+    if (slug && productSlug(p) === slug) return p;
+    return null;
+  } catch { return null; }
+}
+
+function wireGridProductLinks(grid, products) {
+  grid.querySelectorAll('.piece').forEach((piece) => {
+    const btn = piece.querySelector('[data-add-to-cart]');
+    const id = btn?.getAttribute('data-product-id')?.trim();
+    if (!id) return;
+    const p = products.find((x) => x.id === id);
+    if (!p) return;
+    piece.querySelectorAll('a.piece-name-link').forEach((a) => {
+      a.addEventListener('click', () => saveSelectedProduct(p));
+    });
+  });
+}
+
+function applyProductDetailLd(p) {
+  const el = document.getElementById('qori-product-ld');
+  if (!el || !p) return;
+  const slug = productSlug(p);
+  const pageUrl = slug ? `${CANONICAL_ORIGIN}/products/${slug}.html` : `${CANONICAL_ORIGIN}/shop.html`;
+  const imgs = (p.images || []).filter(Boolean);
+  const priceStr = Number.isFinite(Number(p.price)) ? Number(p.price).toFixed(2) : '0.00';
+  const invNum = Number(p.inventory);
+  const availability = Number.isFinite(invNum) && invNum <= 0
+    ? 'https://schema.org/OutOfStock'
+    : 'https://schema.org/InStock';
+  const desc = [p.material, p.category ? `${p.category} — Qori Silver` : 'Qori Silver'].filter(Boolean).join(' · ');
+
+  const doc = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        '@id': `${pageUrl}#breadcrumb`,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: `${CANONICAL_ORIGIN}/` },
+          { '@type': 'ListItem', position: 2, name: 'Shop', item: `${CANONICAL_ORIGIN}/shop.html` },
+          { '@type': 'ListItem', position: 3, name: p.name, item: pageUrl },
+        ],
+      },
+      {
+        '@type': 'Product',
+        '@id': `${pageUrl}#product`,
+        name: p.name,
+        description: desc.slice(0, 500),
+        url: pageUrl,
+        image: imgs.length ? imgs : undefined,
+        brand: { '@type': 'Brand', name: 'Qori Silver' },
+        material: 'Sterling Silver .95',
+        category: p.category || undefined,
+        offers: {
+          '@type': 'Offer',
+          url: pageUrl,
+          price: priceStr,
+          priceCurrency: 'USD',
+          availability,
+          seller: { '@type': 'Organization', name: 'Qori Silver' },
+        },
+      },
+    ],
+  };
+  el.textContent = JSON.stringify(doc);
+}
+
+function renderProductDetail(root, p) {
+  const slug = productSlug(p);
+  const catColor = CAT_COLOR[p.category] || 'var(--gold)';
+  const price = formatPrice(p.price);
+  const invNum = Number(p.inventory);
+  const soldOut = Number.isFinite(invNum) && invNum <= 0;
+
+  root.classList.toggle('is-soldout', soldOut);
+  root.dataset.qoriDetailReady = '1';
+  if (slug) root.dataset.qoriDetailSlug = slug;
+
+  const gallery = root.querySelector('[data-qori-detail-gallery]');
+  if (gallery) {
+    gallery.innerHTML = buildPieceCarousel(p);
+    initCarousels(gallery);
+  }
+
+  const h1 = root.querySelector('[data-qori-detail-name]');
+  if (h1) h1.textContent = p.name;
+
+  const meta = root.querySelector('[data-qori-detail-meta]');
+  if (meta) meta.innerHTML = `<span style="color:${catColor}">${esc(p.category || '')}</span>`;
+
+  const priceEl = root.querySelector('[data-qori-detail-price]');
+  if (priceEl) priceEl.textContent = price;
+
+  const matLine = root.querySelector('[data-qori-detail-mat]');
+  if (matLine) matLine.textContent = p.material || '';
+
+  const crumb = root.querySelector('[data-qori-detail-crumb]');
+  if (crumb) crumb.textContent = p.name;
+
+  const btn = root.querySelector('[data-add-to-cart]');
+  if (btn) {
+    btn.setAttribute('data-product-id', p.id);
+    btn.setAttribute('data-product-name', p.name);
+    btn.setAttribute('data-product-price', Number.isFinite(Number(p.price)) ? Number(p.price).toFixed(2) : '0.00');
+    btn.disabled = soldOut;
+    btn.textContent = soldOut ? 'Unavailable' : 'Add to cart';
+  }
+
+  document.title = `${p.name} | Qori Silver`;
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc && p.material) {
+    metaDesc.setAttribute('content', `${p.name} — ${p.material} · Handcrafted Peruvian sterling .95 · Qori Silver. Free worldwide shipping.`);
+  }
+
+  applyProductDetailLd(p);
+}
+
 function renderGridProducts(grid, products, linkBase) {
   grid.innerHTML = products.map((p) => buildPieceCard(p, linkBase)).join('\n');
   grid.dataset.qoriProductsReady = '1';
   initCarousels(grid);
-  document.dispatchEvent(new CustomEvent('qori:shop-products-rendered', { detail: { products } }));
+  wireGridProductLinks(grid, products);
+  notifyProductsReady(products);
   applyShopItemListLd(products);
   applyHomeCollectionItemListLd(products);
 }
 
 async function hydrateProductGrid(grid) {
-  const apiBase = (window.QORI_API_BASE || '').replace(/\/$/, '');
   const linkBase = (grid.getAttribute('data-qori-product-link-base') || 'products/').trim() || 'products/';
 
-  // Show cached products immediately - page feels instant on repeat visits
-  const cached = readProductsCache();
-  if (cached && cached.length > 0) {
-    renderGridProducts(grid, cached, linkBase);
-  }
-
-  // Always fetch fresh data in the background
   try {
-    const res = await fetch(`${apiBase}/api/products`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const products = await res.json();
-
+    const products = await loadProductsCatalog();
     if (!Array.isArray(products) || products.length === 0) {
       if (!grid.dataset.qoriProductsReady) {
         grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">No products available right now.</p>';
       }
       return;
     }
-
-    // Only re-render if data changed (avoids resetting carousel state on same data)
-    const freshJson = JSON.stringify(products);
-    if (!cached || JSON.stringify(cached) !== freshJson) {
-      writeProductsCache(products);
+    const prevJson = grid.dataset.qoriProductsJson || '';
+    const nextJson = JSON.stringify(products);
+    if (prevJson !== nextJson) {
+      grid.dataset.qoriProductsJson = nextJson;
+      renderGridProducts(grid, products, linkBase);
+    } else if (!grid.dataset.qoriProductsReady) {
       renderGridProducts(grid, products, linkBase);
     } else {
-      writeProductsCache(products); // update timestamp even if data unchanged
+      notifyProductsReady(products);
     }
   } catch (err) {
     console.error('Product grid load failed:', err);
     if (!grid.dataset.qoriProductsReady) {
-      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products - please refresh.</p>';
+      grid.innerHTML = '<p style="text-align:center;padding:3rem;opacity:.6;grid-column:1/-1">Could not load products — please refresh.</p>';
+    }
+  }
+}
+
+function shouldRerenderDetail(root, p, { id, slug }) {
+  const prevJson = root.dataset.qoriDetailJson || '';
+  const nextJson = JSON.stringify(p);
+  const key = id || slug || '';
+  const prevKey = root.dataset.qoriDetailKey || '';
+  return prevJson !== nextJson || prevKey !== key || !root.dataset.qoriDetailReady;
+}
+
+function applyDetailRender(root, p, { id, slug }) {
+  root.dataset.qoriDetailJson = JSON.stringify(p);
+  root.dataset.qoriDetailKey = id || slug || '';
+  renderProductDetail(root, p);
+}
+
+async function hydrateProductDetail(root) {
+  const target = resolveDetailTarget(root);
+  const { id, slug } = target;
+  if (!id && !slug) return;
+
+  const snap = readSelectedProduct(id, slug);
+  if (snap && shouldRerenderDetail(root, snap, target)) {
+    applyDetailRender(root, snap, target);
+  }
+
+  try {
+    const products = await loadProductsCatalog();
+    const p = findProductForDetail(products, target);
+    if (!p) {
+      if (!root.dataset.qoriDetailReady) {
+        const gallery = root.querySelector('[data-qori-detail-gallery]');
+        if (gallery) gallery.innerHTML = '<p class="muted" style="padding:3rem 1rem;text-align:center">Product not found.</p>';
+      }
+      return;
+    }
+
+    if (shouldRerenderDetail(root, p, target)) {
+      applyDetailRender(root, p, target);
+    }
+    notifyProductsReady(products);
+  } catch (err) {
+    console.error('Product detail load failed:', err);
+    if (!root.dataset.qoriDetailReady) {
+      const gallery = root.querySelector('[data-qori-detail-gallery]');
+      if (gallery) {
+        gallery.innerHTML = '<p class="muted" style="padding:3rem 1rem;text-align:center">Could not load product — please refresh.</p>';
+      }
     }
   }
 }
@@ -286,4 +535,32 @@ function initProductGrids() {
   });
 }
 
+function initProductDetails() {
+  document.querySelectorAll('[data-qori-product-detail]').forEach((root) => {
+    hydrateProductDetail(root);
+  });
+}
+
+document.addEventListener('qori:products-catalog-changed', (e) => {
+  const products = e.detail?.products;
+  if (!Array.isArray(products) || !products.length) return;
+
+  document.querySelectorAll('[data-qori-products]').forEach((grid) => {
+    const linkBase = (grid.getAttribute('data-qori-product-link-base') || 'products/').trim() || 'products/';
+    grid.dataset.qoriProductsJson = JSON.stringify(products);
+    renderGridProducts(grid, products, linkBase);
+  });
+
+  document.querySelectorAll('[data-qori-product-detail]').forEach((root) => {
+    const target = resolveDetailTarget(root);
+    const p = findProductForDetail(products, target);
+    if (p && shouldRerenderDetail(root, p, target)) {
+      applyDetailRender(root, p, target);
+    }
+  });
+
+  notifyProductsReady(products);
+});
+
 initProductGrids();
+initProductDetails();

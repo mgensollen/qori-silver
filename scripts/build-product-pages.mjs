@@ -281,25 +281,25 @@ for (const p of products) {
     </div>
   </nav>
 
-  <article class="product-detail">
+  <article class="product-detail" data-qori-product-detail data-qori-product-slug="${p.slug}">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <a href="../index.html">Home</a>
-      <span aria-hidden="true"> · </span>
+      <span aria-hidden="true"> / </span>
       <a href="../shop.html">Shop</a>
-      <span aria-hidden="true"> · </span>
-      <span aria-current="page">${escHtml(p.name)}</span>
+      <span aria-hidden="true"> / </span>
+      <span aria-current="page" data-qori-detail-crumb>Loading…</span>
     </nav>
     <div class="product-detail__grid">
-      <div class="product-detail__gallery">
-${carouselHtml(p)}
+      <div class="product-detail__gallery" data-qori-detail-gallery>
+        <p class="muted" style="padding:3rem 1rem;text-align:center">Loading…</p>
       </div>
       <div class="product-detail__body">
-        <h1>${escHtml(p.name)}</h1>
-        <p class="product-detail__meta"><span style="color:${p.catColor}">${escHtml(p.cat)}</span> · ${escHtml(p.mat)} · Handcrafted in Cusco, Peru</p>
-        <p class="product-detail__price">${p.priceDisplay}</p>
-        <p class="product-detail__intro">${escHtml(p.intro)}</p>
+        <h1 data-qori-detail-name>Loading…</h1>
+        <p class="product-detail__meta" data-qori-detail-meta></p>
+        <p class="product-detail__price" data-qori-detail-price></p>
+        <p class="piece-mat product-detail__mat" data-qori-detail-mat></p>
         <div class="product-detail__actions">
-          <button class="btn-primary piece-add" type="button" data-add-to-cart data-product-id="${p.id}" data-product-name="${escHtml(p.name)}" data-product-price="${p.price}">Add to cart</button>
+          <button class="btn-primary piece-add" type="button" data-add-to-cart disabled>Add to cart</button>
           <a class="product-detail__back" href="../shop.html">← All pieces</a>
         </div>
       </div>
@@ -330,13 +330,7 @@ ${carouselHtml(p)}
   <script src="../js/config.js?v=${CFG_V}"></script>
   <script src="../js/main.js?v=${MAIN_V}"></script>
   <script src="../js/products.js?v=${PRD_V}"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const g = document.querySelector('.product-detail__gallery');
-      if (g) initCarousels(g);
-    });
-  </script>
-  <script type="application/ld+json">
+  <script id="qori-product-ld" type="application/ld+json">
 ${ldJson}
   </script>
 </body>
