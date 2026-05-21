@@ -296,10 +296,37 @@ function productSlug(p) {
 
 function resolveDetailTarget(root) {
   const params = new URLSearchParams(window.location.search);
-  const id = (params.get('id') || '').trim();
+  const id = (params.get('id') || root.getAttribute('data-qori-product-id') || '').trim();
   const slugAttr = (root.getAttribute('data-qori-product-slug') || '').trim();
   const slug = slugAttr || slugFromPagePath();
   return { id, slug };
+}
+
+function applyProductDetailMeta(p) {
+  if (!p) return;
+  const title = `${p.name} | Qori Silver`;
+  const desc = `${p.name} — ${p.material || 'Handcrafted Peruvian sterling .95'} · Qori Silver. Free worldwide shipping.`;
+  document.title = `${p.name} | Qori Silver — Peruvian Sterling Silver Jewelry`;
+
+  [
+    ['name', 'description', desc],
+    ['property', 'og:title', title],
+    ['property', 'og:description', desc.slice(0, 300)],
+    ['name', 'twitter:title', title],
+    ['name', 'twitter:description', desc.slice(0, 300)],
+  ].forEach(([attr, key, val]) => {
+    const el = document.querySelector(`meta[${attr}="${key}"]`);
+    if (el && val) el.setAttribute('content', val);
+  });
+
+  const img = (p.images || [])[0];
+  if (img) {
+    const ogUrl = img.includes('sz=w') ? img.replace(/sz=w\d+/i, 'sz=w1200') : img;
+    const og = document.querySelector('meta[property="og:image"]');
+    const tw = document.querySelector('meta[name="twitter:image"]');
+    if (og) og.setAttribute('content', ogUrl);
+    if (tw) tw.setAttribute('content', ogUrl);
+  }
 }
 
 function findProductForDetail(products, { id, slug }) {
@@ -431,12 +458,7 @@ function renderProductDetail(root, p) {
     btn.textContent = soldOut ? 'Unavailable' : 'Add to cart';
   }
 
-  document.title = `${p.name} | Qori Silver`;
-  const metaDesc = document.querySelector('meta[name="description"]');
-  if (metaDesc && p.material) {
-    metaDesc.setAttribute('content', `${p.name} — ${p.material} · Handcrafted Peruvian sterling .95 · Qori Silver. Free worldwide shipping.`);
-  }
-
+  applyProductDetailMeta(p);
   applyProductDetailLd(p);
 }
 

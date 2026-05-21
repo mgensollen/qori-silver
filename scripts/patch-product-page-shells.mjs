@@ -9,31 +9,35 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const productsDir = path.join(__dirname, '..', 'products');
 
-const SLUGS = [
-  'amaru-curb-necklace-bracelet',
-  'inti-heavy-curb-set',
-  'killa-curb-necklace',
-  'qori-figaro-necklace',
-  'pachamama-clover-necklace',
-  'inti-solar-disc-earrings',
-  'chakana-cross-earrings',
+const CATALOG = [
+  { id: 'product-1', slug: 'amaru-curb-necklace-bracelet', name: 'Amaru Necklace' },
+  { id: 'product-2', slug: 'inti-heavy-curb-set', name: 'Inti Heavy Set' },
+  { id: 'product-3', slug: 'killa-curb-necklace', name: 'Killa Necklace' },
+  { id: 'product-4', slug: 'qori-figaro-necklace', name: 'Qori Figaro Necklace' },
+  { id: 'product-5', slug: 'pachamama-clover-necklace', name: 'Pachamama Clover Necklace' },
+  { id: 'product-6', slug: 'inti-solar-disc-earrings', name: 'Inti Solar Disc Set' },
+  { id: 'product-7', slug: 'chakana-cross-earrings', name: 'Chakana Cross Set' },
 ];
+const SLUGS = CATALOG.map((c) => c.slug);
 
 function shell(slug) {
-  return `  <article class="product-detail" data-qori-product-detail data-qori-product-slug="${slug}">
+  const row = CATALOG.find((c) => c.slug === slug);
+  const id = row?.id || '';
+  const name = row?.name || 'Product';
+  return `  <article class="product-detail" data-qori-product-detail data-qori-product-slug="${slug}" data-qori-product-id="${id}">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <a href="../index.html">Home</a>
       <span aria-hidden="true"> / </span>
       <a href="../shop.html">Shop</a>
       <span aria-hidden="true"> / </span>
-      <span aria-current="page" data-qori-detail-crumb>Loading…</span>
+      <span aria-current="page" data-qori-detail-crumb>${name}</span>
     </nav>
     <div class="product-detail__grid">
       <div class="product-detail__gallery" data-qori-detail-gallery>
         <p class="muted" style="padding:3rem 1rem;text-align:center">Loading…</p>
       </div>
       <div class="product-detail__body">
-        <h1 data-qori-detail-name>Loading…</h1>
+        <h1 data-qori-detail-name>${name}</h1>
         <p class="product-detail__meta" data-qori-detail-meta></p>
         <p class="product-detail__price" data-qori-detail-price></p>
         <p class="piece-mat product-detail__mat" data-qori-detail-mat></p>

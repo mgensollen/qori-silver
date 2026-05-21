@@ -281,20 +281,20 @@ for (const p of products) {
     </div>
   </nav>
 
-  <article class="product-detail" data-qori-product-detail data-qori-product-slug="${p.slug}">
+  <article class="product-detail" data-qori-product-detail data-qori-product-slug="${p.slug}" data-qori-product-id="${p.id}">
     <nav class="breadcrumbs" aria-label="Breadcrumb">
       <a href="../index.html">Home</a>
       <span aria-hidden="true"> / </span>
       <a href="../shop.html">Shop</a>
       <span aria-hidden="true"> / </span>
-      <span aria-current="page" data-qori-detail-crumb>Loading…</span>
+      <span aria-current="page" data-qori-detail-crumb>${escHtml(p.name)}</span>
     </nav>
     <div class="product-detail__grid">
       <div class="product-detail__gallery" data-qori-detail-gallery>
         <p class="muted" style="padding:3rem 1rem;text-align:center">Loading…</p>
       </div>
       <div class="product-detail__body">
-        <h1 data-qori-detail-name>Loading…</h1>
+        <h1 data-qori-detail-name>${escHtml(p.name)}</h1>
         <p class="product-detail__meta" data-qori-detail-meta></p>
         <p class="product-detail__price" data-qori-detail-price></p>
         <p class="piece-mat product-detail__mat" data-qori-detail-mat></p>

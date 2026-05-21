@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /success.html
 Disallow: /cancel.html
+Disallow: /inventory.html
 
 Sitemap: https://www.qorisilver.com/sitemap.xml
