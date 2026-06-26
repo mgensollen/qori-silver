@@ -46,17 +46,23 @@ function driveAtSize(url, w) {
  * Build an <img> tag. Only the LCP image (first slide of the first card / PDP hero)
  * loads eagerly with high priority; everything else is lazy so first paint stays fast.
  */
-function imgMarkup(url, alt, { lcp, sizes, widths, baseW }) {
+function imgMarkup(url, alt, { lcp, sizes, widths, baseW, defer }) {
   let src = url;
-  let extra = '';
+  let set = '';
   if (isDriveThumb(url)) {
     src = driveAtSize(url, baseW);
-    const set = widths.map((w) => `${driveAtSize(url, w)} ${w}w`).join(', ');
-    extra = ` srcset="${esc(set)}" sizes="${sizes}"`;
+    set = widths.map((w) => `${driveAtSize(url, w)} ${w}w`).join(', ');
   }
+  // Deferred (non-visible carousel) slides hold their URLs in data-* and are
+  // hydrated on first interaction - they never fetch on initial page load.
+  if (defer) {
+    const ss = set ? ` data-srcset="${esc(set)}" sizes="${sizes}"` : '';
+    return `<img data-src="${esc(src)}"${ss} alt="${alt}" loading="lazy" decoding="async" width="800" height="800">`;
+  }
+  const ss = set ? ` srcset="${esc(set)}" sizes="${sizes}"` : '';
   const loading = lcp ? 'eager' : 'lazy';
   const priority = lcp ? ' fetchpriority="high"' : '';
-  return `<img src="${esc(src)}"${extra} alt="${alt}" loading="${loading}"${priority} decoding="async" width="800" height="800">`;
+  return `<img src="${esc(src)}"${ss} alt="${alt}" loading="${loading}"${priority} decoding="async" width="800" height="800">`;
 }
 
 function buildPieceCarousel(p, opts = {}) {
@@ -68,8 +74,9 @@ function buildPieceCarousel(p, opts = {}) {
   const alt = esc(p.name);
 
   // First slide of the first card (or the PDP hero) is the LCP candidate.
+  // Remaining slides are deferred until the shopper interacts with the carousel.
   const first = (url) => imgMarkup(url, alt, { lcp: !!opts.lcp, sizes, widths, baseW });
-  const rest = (url) => imgMarkup(url, alt, { lcp: false, sizes, widths, baseW });
+  const rest = (url) => imgMarkup(url, alt, { lcp: false, sizes, widths, baseW, defer: true });
 
   if (imgs.length === 0) {
     return `<div class="piece-img" data-carousel style="">${PLACEHOLDER_SVG}</div>`;
@@ -156,6 +163,24 @@ function initCarousels(container) {
     const total = slides.length;
     if (!track || total === 0) return;
 
+    // Swap deferred slide images (data-src -> src) only when needed.
+    function hydrate(i) {
+      const s = slides[((i % total) + total) % total];
+      if (!s) return;
+      s.querySelectorAll('img[data-src]').forEach((img) => {
+        if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+        img.removeAttribute('data-srcset');
+      });
+    }
+    function hydrateAll() {
+      for (let i = 0; i < total; i++) hydrate(i);
+    }
+    // Preload the rest as soon as the shopper shows intent to browse this piece.
+    el.addEventListener('pointerenter', hydrateAll, { once: true });
+    el.addEventListener('touchstart', hydrateAll, { once: true, passive: true });
+
     // Force slide heights to match the container in pixels.
     // CSS percentage-height chains are unreliable on iOS Safari - reading
     // offsetHeight gives the real rendered pixel value with no ambiguity.
@@ -170,6 +195,9 @@ function initCarousels(container) {
 
     function go(n) {
       cur = ((n % total) + total) % total;
+      hydrate(cur);
+      hydrate(cur + 1);
+      hydrate(cur - 1);
       track.style.transform = `translateX(-${cur * 100}%)`;
       dots.forEach((d, i) => d.classList.toggle('active', i === cur));
     }
