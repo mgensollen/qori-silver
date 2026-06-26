@@ -29,9 +29,47 @@ function formatPrice(n) {
   return `$${x.toFixed(2)}`;
 }
 
-function buildPieceCarousel(p) {
+/* Responsive image helpers - keep Drive bytes proportional to render size. */
+const GRID_IMG_SIZES = '(max-width: 600px) 92vw, (max-width: 1000px) 46vw, 30vw';
+const DETAIL_IMG_SIZES = '(max-width: 768px) 92vw, 46vw';
+
+function isDriveThumb(url) {
+  return /drive\.google\.com\/thumbnail/i.test(String(url));
+}
+
+function driveAtSize(url, w) {
+  if (/([?&])sz=w\d+/i.test(url)) return url.replace(/([?&])sz=w\d+/i, `$1sz=w${w}`);
+  return `${url}${url.includes('?') ? '&' : '?'}sz=w${w}`;
+}
+
+/**
+ * Build an <img> tag. Only the LCP image (first slide of the first card / PDP hero)
+ * loads eagerly with high priority; everything else is lazy so first paint stays fast.
+ */
+function imgMarkup(url, alt, { lcp, sizes, widths, baseW }) {
+  let src = url;
+  let extra = '';
+  if (isDriveThumb(url)) {
+    src = driveAtSize(url, baseW);
+    const set = widths.map((w) => `${driveAtSize(url, w)} ${w}w`).join(', ');
+    extra = ` srcset="${esc(set)}" sizes="${sizes}"`;
+  }
+  const loading = lcp ? 'eager' : 'lazy';
+  const priority = lcp ? ' fetchpriority="high"' : '';
+  return `<img src="${esc(src)}"${extra} alt="${alt}" loading="${loading}"${priority} decoding="async" width="800" height="800">`;
+}
+
+function buildPieceCarousel(p, opts = {}) {
+  const detail = opts.context === 'detail';
+  const sizes = detail ? DETAIL_IMG_SIZES : GRID_IMG_SIZES;
+  const baseW = detail ? 800 : 400;
+  const widths = detail ? [400, 600, 800, 1200] : [300, 400, 600, 800];
   const imgs = p.images || [];
   const alt = esc(p.name);
+
+  // First slide of the first card (or the PDP hero) is the LCP candidate.
+  const first = (url) => imgMarkup(url, alt, { lcp: !!opts.lcp, sizes, widths, baseW });
+  const rest = (url) => imgMarkup(url, alt, { lcp: false, sizes, widths, baseW });
 
   if (imgs.length === 0) {
     return `<div class="piece-img" data-carousel style="">${PLACEHOLDER_SVG}</div>`;
@@ -40,7 +78,7 @@ function buildPieceCarousel(p) {
   if (imgs.length === 1) {
     return `<div class="piece-img" data-carousel style="">
       <div class="carousel-track">
-        <div class="carousel-slide"><img src="${esc(imgs[0])}" alt="${alt}" loading="eager"></div>
+        <div class="carousel-slide">${first(imgs[0])}</div>
       </div>
       <button class="carousel-prev" aria-label="Previous">&#8249;</button>
       <button class="carousel-next" aria-label="Next">&#8250;</button>
@@ -49,7 +87,7 @@ function buildPieceCarousel(p) {
   }
 
   const slides = imgs.map((url, i) => `
-            <div class="carousel-slide" style="left:${i * 100}%"><img src="${esc(url)}" alt="${alt}" loading="eager"></div>`).join('');
+            <div class="carousel-slide" style="left:${i * 100}%">${i === 0 ? first(url) : rest(url)}</div>`).join('');
 
   const dots = imgs.map((_, i) =>
     `            <button class="carousel-dot${i === 0 ? ' active' : ''}" aria-label="Photo ${i + 1}"></button>`,
@@ -76,7 +114,7 @@ function productHref(p, linkBase) {
   return `${base}${slug}.html${qs}`;
 }
 
-function buildPieceCard(p, linkBase) {
+function buildPieceCard(p, linkBase, lcp) {
   const href = productHref(p, linkBase);
   const nameHtml = href
     ? `<div class="piece-name"><a class="piece-name-link" href="${esc(href)}">${esc(p.name)}</a></div>`
@@ -92,7 +130,7 @@ function buildPieceCard(p, linkBase) {
 
   return `
       <div class="piece${soldOut ? ' is-soldout' : ''}">
-        ${buildPieceCarousel(p)}
+        ${buildPieceCarousel(p, { context: 'grid', lcp: !!lcp })}
         <div class="piece-cat" style="color:${catColor}">${esc(p.category || '')}</div>
         ${nameHtml}
         <div class="piece-price">${price}</div>
@@ -430,7 +468,7 @@ function renderProductDetail(root, p) {
 
   const gallery = root.querySelector('[data-qori-detail-gallery]');
   if (gallery) {
-    gallery.innerHTML = buildPieceCarousel(p);
+    gallery.innerHTML = buildPieceCarousel(p, { context: 'detail', lcp: true });
     initCarousels(gallery);
   }
 
@@ -463,7 +501,7 @@ function renderProductDetail(root, p) {
 }
 
 function renderGridProducts(grid, products, linkBase) {
-  grid.innerHTML = products.map((p) => buildPieceCard(p, linkBase)).join('\n');
+  grid.innerHTML = products.map((p, i) => buildPieceCard(p, linkBase, i === 0)).join('\n');
   grid.dataset.qoriProductsReady = '1';
   initCarousels(grid);
   wireGridProductLinks(grid, products);
