@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server/index.js",
     "seed-inventory": "node server/seed-product-inventory.mjs",
-    "sync-catalog": "node server/sync-catalog.mjs"
+    "sync-catalog": "node server/sync-catalog.mjs",
+    "migrate-images": "node server/migrate-images-to-supabase.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

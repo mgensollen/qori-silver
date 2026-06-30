@@ -42,6 +42,22 @@ function driveAtSize(url, w) {
   return `${url}${url.includes('?') ? '&' : '?'}sz=w${w}`;
 }
 
+/* Supabase Storage variants uploaded by server/migrate-images-to-supabase.mjs.
+   Files are named <id>/<n>-<width>.<ext>; MUST match WIDTHS in that script. */
+const SUPABASE_WIDTHS = [400, 800, 1200, 1600];
+
+function isSupabaseSized(url) {
+  return /\/storage\/v1\/object\/public\/.+-\d+\.(?:jpe?g|png|webp)(?:$|\?)/i.test(String(url));
+}
+
+function supabaseAtSize(url, w) {
+  return String(url).replace(/-(\d+)(\.(?:jpe?g|png|webp))(\?|$)/i, `-${w}$2$3`);
+}
+
+function nearestWidth(widths, target) {
+  return widths.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
+}
+
 /**
  * Build an <img> tag. Only the LCP image (first slide of the first card / PDP hero)
  * loads eagerly with high priority; everything else is lazy so first paint stays fast.
@@ -52,6 +68,9 @@ function imgMarkup(url, alt, { lcp, sizes, widths, baseW, defer }) {
   if (isDriveThumb(url)) {
     src = driveAtSize(url, baseW);
     set = widths.map((w) => `${driveAtSize(url, w)} ${w}w`).join(', ');
+  } else if (isSupabaseSized(url)) {
+    src = supabaseAtSize(url, nearestWidth(SUPABASE_WIDTHS, baseW));
+    set = SUPABASE_WIDTHS.map((w) => `${supabaseAtSize(url, w)} ${w}w`).join(', ');
   }
   // Deferred (non-visible carousel) slides hold their URLs in data-* and are
   // hydrated on first interaction - they never fetch on initial page load.
