@@ -32,7 +32,7 @@ const products = [
     metaDesc:
       'Shop the Amaru curb necklace and bracelet set by Qori Silver — handcrafted Peruvian sterling .95 silver, 19.88g, 24 in. Andean serpent motif. Free worldwide shipping.',
     intro:
-      'The Amaru set is a signature Qori Silver curb chain necklace and bracelet in sterling .95, forged by hand in Cusco. Named for the serpent of transformation in Andean mythology, it carries weight and polish that feel ancient yet utterly modern. Each link is finished slowly so the silver catches light the way high-altitude sun touches stone.',
+      'The Amaru set is a signature Qori Silver curb chain necklace and bracelet in sterling .95, forged by hand in Peru. Named for the serpent of transformation in Andean mythology, it carries weight and polish that feel ancient yet utterly modern. Each link is finished slowly so the silver catches light the way high-altitude sun touches stone.',
     slides: [
       '1Q7cbapay_stg3aUSOOFYCEAUtgAFBj-I',
       '14lujjOhLTn-JP_K_69mdqvjax5Vu6xtk',
@@ -74,7 +74,7 @@ const products = [
     metaDesc:
       'Killa curb necklace in sterling .95 by Qori Silver — lightweight Peruvian handmade silver, 9.34g, 21 in. Named for the Andean moon. Free worldwide shipping.',
     intro:
-      'Named for Killa, the moon, this slimmer curb necklace is Qori Silver’s answer to everyday Andean luxury: sterling .95 silver, light on the neck, rich in detail. Handcrafted in Cusco with the same attention we give our heaviest sets — only quieter, for layering or standing alone.',
+      'Named for Killa, the moon, this slimmer curb necklace is Qori Silver’s answer to everyday Andean luxury: sterling .95 silver, light on the neck, rich in detail. Handcrafted in Peru with the same attention we give our heaviest sets — only quieter, for layering or standing alone.',
     slides: [
       '1Cc32F1VY1puvGfmGsFTCOlu06x3JRQNW',
       '10Nk783ddQLd39A3p851md0u7WFuGrl_m',
@@ -95,7 +95,7 @@ const products = [
     metaDesc:
       'Qori Figaro necklace in Peruvian sterling .95 — Qori Silver handmade Figaro chain, 16.44g, 24 in. Andean craft meets classic link rhythm. Free worldwide shipping.',
     intro:
-      'The Figaro rhythm — elongated links alternating with trios — gets a Qori Silver treatment in sterling .95, finished by hand near Cusco. This necklace carries our name in its pattern: structured, warm, and built to last generations with the right care.',
+      'The Figaro rhythm — elongated links alternating with trios — gets a Qori Silver treatment in sterling .95, finished by hand in Peru. This necklace carries our name in its pattern: structured, warm, and built to last generations with the right care.',
     slides: [
       '1ZuHb5cxfWde9hvr_d64XYFscpYd2D4F-',
       '1UHN7wWA4k9ABoHxXHBaAb4ClIJLRDf07',
@@ -136,7 +136,7 @@ const products = [
     mat: 'Pendant: Sterling silver .95',
     ogImageId: '1jlIFc75pP_p1dEHoIqaX_M6Q8OumdcZJ',
     metaDesc:
-      'Inti Solar Disc earrings — Qori Silver sterling .95 stud set inspired by the Incan sun. Handcrafted in Cusco. Free worldwide shipping.',
+      'Inti Solar Disc earrings — Qori Silver sterling .95 stud set inspired by the Incan sun. Handcrafted in Peru. Free worldwide shipping.',
     intro:
       'Solar discs in miniature: these earrings channel Inti’s radiance in sterling .95 silver, shaped and polished by Qori Silver artisans. A compact statement rooted in Andean cosmology — light you can wear close to the face.',
     slides: [
