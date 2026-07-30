@@ -513,6 +513,29 @@ function computeCheckoutReturnBase() {
   return window.location.origin + (parts.length ? `/${parts.join('/')}` : '');
 }
 
+function setCartTrackingQuery({ event, productId, value }) {
+  try {
+    const url = new URL(window.location.href);
+    // Keep existing UTM / ad params; only update cart-tracking keys.
+    url.searchParams.set('cart', String(event || 'add'));
+    if (productId) url.searchParams.set('product', String(productId));
+    else url.searchParams.delete('product');
+    if (value != null && Number.isFinite(Number(value))) {
+      url.searchParams.set('value', String(Number(value)));
+    } else {
+      url.searchParams.delete('value');
+    }
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, '', next);
+  } catch {}
+}
+
+function trackAnalyticsEvent(name, params = {}) {
+  try {
+    if (typeof window.gtag === 'function') window.gtag('event', name, params);
+  } catch {}
+}
+
 async function startStripeCheckout(cart) {
   const apiBase = (window.QORI_API_BASE || '').toString().replace(/\/$/, '');
 
@@ -618,6 +641,12 @@ document.addEventListener('click', (e) => {
   renderCart(cart);
   const nextQty = cart.items.find(i => i.id === id)?.qty || 0;
   if (nextQty > previousQty) {
+    setCartTrackingQuery({ event: 'add', productId: id, value: price });
+    trackAnalyticsEvent('add_to_cart', {
+      currency: 'USD',
+      value: price,
+      items: [{ item_id: id, item_name: name, price, quantity: 1 }],
+    });
     openCart();
   } else {
     alert('This item is out of stock.');
@@ -662,6 +691,18 @@ document.querySelector('[data-cart-clear]')?.addEventListener('click', (e) => {
 document.querySelector('[data-cart-checkout]')?.addEventListener('click', (e) => {
   e.preventDefault();
   if (cart.items.length === 0) return;
+  const value = cartSubtotal(cart);
+  setCartTrackingQuery({ event: 'checkout', value });
+  trackAnalyticsEvent('begin_checkout', {
+    currency: 'USD',
+    value,
+    items: (cart.items || []).map((it) => ({
+      item_id: it.id,
+      item_name: it.name,
+      price: Number(it.price) || 0,
+      quantity: Number(it.qty) || 1,
+    })),
+  });
   startStripeCheckout(cart).catch((err) => {
     console.error('Checkout error:', err);
     alert(`Checkout failed: ${err?.message || 'Unknown error'}. Check the browser console for details.`);
